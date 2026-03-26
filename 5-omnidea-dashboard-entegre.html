@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ── Supabase Yapılandırması ─────────────────────────────────────────────
+  // Supabase Dashboard > Settings > API'dan kendi değerlerinle değiştir:
+  const SUPABASE_URL = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+
+  // Demo modu koruması: URL hâlâ placeholder ise sayfayı kırmadan çalıştır
+  const SUPABASE_READY = true; // Gerçek değerler yüklendi
+
+  const _demoSession = {
+    user: { id: 'demo-user', email: 'demo@omnidea.app',
+            user_metadata: { full_name: 'Demo Kullanıcı', api_key: 'demo1234' } }
+  };
+  const _demoProfile = { full_name: 'Demo Kullanıcı', plan: 'pro', credits: 100, avatar_url: null };
+
+  const sb = SUPABASE_READY
+    ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : {
+        auth: {
+          getSession:          async () => ({ data: { session: _demoSession }, error: null }),
+          getUser:             async () => ({ data: { user: _demoSession.user }, error: null }),
+          signOut:             async () => {},
+          updateUser:          async () => ({ data: null, error: null }),
+          onAuthStateChange:   ()       => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signInWithPassword:  async () => ({ data: null, error: { message: 'Demo modunda giriş yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signUp:              async () => ({ data: null, error: { message: 'Demo modunda kayıt yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signInWithOAuth:     async () => ({ data: null, error: null }),
+          resetPasswordForEmail: async () => ({ data: null, error: null }),
+        },
+        from: (table) => {
+          const _q = {
+            data: null, _filters: [],
+            select: function()  { return this; },
+            insert: async function() { return { data: { id: 'demo-' + Date.now() }, error: null }; },
+            update: function()  { return this; },
+            delete: function()  { return this; },
+            eq:     function()  { return this; },
+            neq:    function()  { return this; },
+            in:     function()  { return this; },
+            is:     function()  { return this; },
+            ilike:  function()  { return this; },
+            contains: function(){ return this; },
+            order:  function()  { return this; },
+            limit:  function()  { return this; },
+            then:   function(fn){ return Promise.resolve({ data: [], error: null, count: 0 }).then(fn); },
+            single: async function() {
+              if (table === 'profiles') return { data: _demoProfile, error: null };
+              return { data: null, error: null };
+            },
+          };
+          return _q;
+        },
+        channel:       () => ({ on: function(){ return this; }, subscribe: function(){ return this; }, send: async function(){} }),
+        removeChannel: () => {},
+        storage:       { from: () => ({ upload: async () => ({ data: null, error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }), remove: async () => ({}) }) },
+      };
+
+  if (!SUPABASE_READY) {
+    console.warn('[OMNIDEA] ⚠ Demo modu — Supabase bağlantısı yapılandırılmamış.');
+    console.warn('[OMNIDEA] SUPABASE_URL ve SUPABASE_KEY değerlerini Supabase Dashboard > Settings > API\'dan alın.');
+  }
+</script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;--gold-dim:#8A6E2F;
+  --bg:#080808;--bg2:#0F0F0F;--bg3:#161616;--bg4:#1E1E1E;--bg5:#242424;
+  --text:#F0EDE6;--text2:#A09A8E;--text3:#5A554E;
+  --border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.07);
+  --success:#4CAF7D;--error:#E05555;--info:#4A9ECA;--warn:#E8A23A;
+  --sw:220px;--th:48px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;cursor: default;}
+.cursor{width:7px;height:7px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transition:transform 0.1s;}
+.cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transition:all 0.12s;}
+
+/* APP */
+.app{display:grid;grid-template-rows:var(--th) 1fr;grid-template-columns:var(--sw) 1fr;height:100vh;}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;display:flex;align-items:center;background:var(--bg2);border-bottom:0.5px solid var(--border2);z-index:100;padding:0;}
+.tlogo{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;letter-spacing:0.08em;color:var(--text);padding:0 1.2rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;}
+.tlogo span{color:var(--gold);}
+.tbread{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);padding:0 1rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;gap:0.4rem;}
+.tbread b{color:var(--gold);}
+.tsearch{flex:1;display:flex;align-items:center;gap:0.5rem;padding:0 1rem;border-right:0.5px solid var(--border2);height:100%;}
+.tsearch input{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);outline:none;width:100%;cursor: pointer;}
+.tsearch input::placeholder{color:var(--text3);}
+.tr{display:flex;align-items:center;gap:0.6rem;padding:0 1rem;height:100%;}
+.tb{font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:2px;border:none;cursor: pointer;transition:all 0.2s;}
+.tb-g{background:none;color:var(--text2);border:0.5px solid var(--border2);}
+.tb-g:hover{border-color:var(--border);color:var(--text);}
+.tb-gold{background:var(--gold);color:var(--bg);}
+.tb-gold:hover{background:var(--gold-light);}
+.notif-wrap{position:relative;}
+.nb{width:30px;height:30px;border-radius:3px;background:none;border:none;color:var(--text3);cursor: pointer;position:relative;transition:all 0.15s;display:flex;align-items:center;justify-content:center;font-size:0.9rem;}
+.nb:hover,.nb.open{background:var(--bg3);color:var(--text);}
+.nd{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--error);border:1.5px solid var(--bg2);}
+.av-wrap{position:relative;}
+.av{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:var(--gold);cursor: pointer;}
+
+/* NOTIF DROPDOWN */
+.notif-dropdown{
+  position:absolute;top:calc(100% + 8px);right:0;width:320px;
+  background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;
+  z-index:200;display:none;overflow:hidden;
+  animation:dropIn 0.2s ease;
+}
+.notif-dropdown.open{display:block;}
+@keyframes dropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+.nd-header{display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:0.5px solid var(--border2);}
+.nd-title{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--text);}
+.nd-clear{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;cursor: pointer;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.nd-clear:hover{color:var(--gold);}
+.nd-list{max-height:340px;overflow-y:auto;}
+.nd-list::-webkit-scrollbar{width:3px;}
+.nd-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.ni{display:flex;align-items:flex-start;gap:0.6rem;padding:0.7rem 1rem;border-bottom:0.5px solid var(--border2);cursor: pointer;transition:background 0.15s;position:relative;}
+.ni:hover{background:var(--bg3);}
+.ni.unread::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--gold);}
+.ni-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.ni-body{flex:1;}
+.ni-title{font-size:0.75rem;font-weight:500;color:var(--text);margin-bottom:2px;line-height:1.4;}
+.ni-msg{font-size:0.68rem;color:var(--text2);line-height:1.4;}
+.ni-time{font-size:0.6rem;color:var(--text3);margin-top:3px;}
+.ni-act{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--gold);background:none;border:none;cursor: pointer;padding:0;margin-top:4px;display:block;font-family:'DM Sans',sans-serif;}
+.nd-footer{padding:0.6rem 1rem;border-top:0.5px solid var(--border2);text-align:center;}
+.nd-footer button{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;cursor: pointer;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.nd-footer button:hover{color:var(--gold);}
+
+/* PROFILE DROPDOWN */
+.profile-dropdown{position:absolute;top:calc(100% + 8px);right:0;width:200px;background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;z-index:200;display:none;overflow:hidden;animation:dropIn 0.2s ease;}
+.profile-dropdown.open{display:block;}
+.pd-user{padding:0.8rem 1rem;border-bottom:0.5px solid var(--border2);}
+.pd-name{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;color:var(--text);}
+.pd-role{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--gold);margin-top:2px;}
+.pd-item{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 1rem;font-size:0.78rem;color:var(--text2);cursor: pointer;transition:all 0.15s;}
+.pd-item:hover{background:var(--bg3);color:var(--text);}
+.pd-item-icon{font-size:0.8rem;width:14px;text-align:center;}
+.pd-div{height:0.5px;background:var(--border2);margin:0.25rem 0;}
+.pd-logout{color:var(--error);}
+.pd-logout:hover{background:rgba(224,85,85,0.06);color:var(--error);}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:0.5px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;}
+.sl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);padding:0.9rem 0.9rem 0.4rem;display:block;}
+.si{display:flex;align-items:center;gap:0.55rem;padding:0.45rem 0.7rem;border-radius:3px;cursor: pointer;transition:all 0.15s;font-size:0.8rem;color:var(--text2);margin:1px 0.5rem;}
+.si:hover{background:var(--bg3);color:var(--text);}
+.si.active{background:rgba(201,168,76,0.08);color:var(--gold);border-left:2px solid var(--gold);border-radius:0 3px 3px 0;margin-left:0;padding-left:calc(0.7rem - 2px + 0.5rem);}
+.si-ico{font-size:0.85rem;width:15px;text-align:center;flex-shrink:0;}
+.si-badge{font-size:0.58rem;background:var(--error);color:#fff;border-radius:8px;padding:1px 5px;margin-left:auto;}
+.si-badge-g{background:var(--success);}
+.sdiv{height:0.5px;background:var(--border2);margin:0.4rem 0.7rem;}
+.sidebar-bottom{margin-top:auto;padding:0.75rem;border-top:0.5px solid var(--border2);}
+.upgrade-card{background:rgba(201,168,76,0.05);border:0.5px solid var(--border);border-radius:4px;padding:0.8rem;}
+.uc-title{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;color:var(--text);margin-bottom:0.3rem;}
+.uc-sub{font-size:0.68rem;color:var(--text2);line-height:1.5;margin-bottom:0.6rem;}
+.uc-btn{width:100%;padding:0.4rem;background:var(--gold);border:none;border-radius:2px;font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;}
+.uc-btn:hover{background:var(--gold-light);}
+
+/* MAIN CONTENT */
+.content{overflow-y:auto;display:flex;flex-direction:column;}
+.content::-webkit-scrollbar{width:4px;}
+.content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* DASHBOARD VIEW */
+.view{display:none;padding:1.5rem 2rem;flex-direction:column;gap:1.2rem;min-height:100%;}
+.view.active{display:flex;}
+
+/* WELCOME BAR */
+.welcome{display:flex;align-items:center;justify-content:space-between;}
+.welcome-left{}
+.welcome-tag{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold);margin-bottom:0.3rem;}
+.welcome-name{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:-0.01em;}
+.welcome-name span{color:var(--gold);}
+.welcome-sub{font-size:0.82rem;color:var(--text2);margin-top:0.3rem;font-weight:300;}
+.welcome-right{display:flex;gap:0.5rem;}
+
+/* METRIC CARDS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;}
+.mc{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;transition:border-color 0.2s;cursor: pointer;}
+.mc:hover{border-color:var(--border);}
+.mc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);opacity:0;transition:opacity 0.2s;}
+.mc:hover::after{opacity:1;}
+.mc-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.5rem;}
+.mc-val{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text);line-height:1;}
+.mc-val span{color:var(--gold);}
+.mc-change{font-size:0.68rem;margin-top:0.4rem;display:flex;align-items:center;gap:0.3rem;}
+.mc-up{color:var(--success);}
+.mc-down{color:var(--error);}
+.mc-icon{position:absolute;top:1rem;right:1rem;font-size:1.4rem;opacity:0.12;}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 320px;gap:0.75rem;}
+
+/* ACTIVITY CHART */
+.chart-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.1rem 1.2rem;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.card-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);}
+.card-action{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;cursor: pointer;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.card-action:hover{color:var(--gold);}
+.chart-wrap{height:140px;display:flex;align-items:flex-end;gap:6px;padding-top:0.5rem;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar{width:100%;border-radius:2px 2px 0 0;background:var(--bg4);position:relative;transition:all 0.3s;cursor: pointer;}
+.bar.gold{background:var(--gold);opacity:0.8;}
+.bar.gold:hover{opacity:1;}
+.bar.info{background:var(--info);opacity:0.5;}
+.bar.info:hover{opacity:0.8;}
+.bar-label{font-size:0.58rem;color:var(--text3);}
+
+/* QUICK ACTIONS */
+.quick-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.1rem 1.2rem;}
+.qa-list{display:flex;flex-direction:column;gap:0.4rem;margin-top:0.5rem;}
+.qa{display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.7rem;border-radius:3px;background:var(--bg3);border:0.5px solid var(--border2);cursor: pointer;transition:all 0.18s;}
+.qa:hover{border-color:var(--border);background:var(--bg4);}
+.qa:hover .qa-arrow{color:var(--gold);}
+.qa-ico{width:28px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;}
+.qa-txt{flex:1;}
+.qa-name{font-size:0.78rem;font-weight:500;color:var(--text);}
+.qa-desc{font-size:0.65rem;color:var(--text3);}
+.qa-arrow{font-size:0.8rem;color:var(--text3);transition:color 0.15s;}
+
+/* ACTIVE PROJECTS */
+.ap-list{display:flex;flex-direction:column;gap:0.4rem;margin-top:0.5rem;}
+.ap{display:flex;align-items:center;gap:0.6rem;padding:0.65rem 0.8rem;border-radius:3px;background:var(--bg3);border:0.5px solid var(--border2);cursor: pointer;transition:all 0.15s;}
+.ap:hover{border-color:var(--border);}
+.ap-ico{font-size:1rem;flex-shrink:0;}
+.ap-info{flex:1;}
+.ap-name{font-size:0.78rem;font-weight:500;color:var(--text);}
+.ap-meta{font-size:0.63rem;color:var(--text3);margin-top:1px;}
+.ap-status{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.07em;padding:2px 6px;border-radius:2px;}
+.aps-design{background:rgba(74,158,202,0.1);color:var(--info);}
+.aps-market{background:rgba(201,168,76,0.1);color:var(--gold);}
+.aps-prod{background:rgba(76,175,125,0.1);color:var(--success);}
+.ap-score{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;width:28px;height:28px;border-radius:50%;border:1.5px solid;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* RECENT BIDS */
+.bid-item{display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0;border-bottom:0.5px solid var(--border2);}
+.bid-item:last-child{border-bottom:none;}
+.bi-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:600;flex-shrink:0;}
+.bi-info{flex:1;}
+.bi-n{font-size:0.75rem;font-weight:500;color:var(--text);}
+.bi-d{font-size:0.62rem;color:var(--text3);}
+.bi-price{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--gold);}
+
+/* ── PORTFÖY VIEW ── */
+.portfolio-header{display:flex;align-items:center;justify-content:space-between;}
+.pf-filters{display:flex;gap:0.3rem;}
+.pf-f{font-size:0.65rem;letter-spacing:0.05em;text-transform:uppercase;padding:3px 10px;border-radius:2px;border:0.5px solid var(--border2);color:var(--text3);background:none;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.pf-f:hover{border-color:var(--border);color:var(--text2);}
+.pf-f.pfa{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06);}
+
+.portfolio-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;}
+.pf-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;overflow:hidden;cursor: pointer;transition:all 0.2s;position:relative;}
+.pf-card:hover{border-color:var(--border);transform:translateY(-2px);}
+.pf-thumb{height:140px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:2.8rem;position:relative;overflow:hidden;}
+.pf-thumb::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(8,8,8,0.7) 100%);}
+.pf-thumb-overlay{position:absolute;bottom:0.5rem;left:0.6rem;right:0.6rem;display:flex;align-items:center;gap:0.3rem;}
+.pf-sector{font-size:0.57rem;text-transform:uppercase;letter-spacing:0.08em;padding:2px 6px;border-radius:2px;background:rgba(8,8,8,0.7);color:var(--text2);border:0.5px solid rgba(201,168,76,0.2);}
+.pf-score{font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;margin-left:auto;color:var(--gold);}
+.pf-body{padding:0.75rem 0.9rem;}
+.pf-name{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.pf-meta{font-size:0.65rem;color:var(--text3);margin-bottom:0.5rem;}
+.pf-tags{display:flex;gap:0.25rem;flex-wrap:wrap;margin-bottom:0.5rem;}
+.pf-tag{font-size:0.57rem;text-transform:uppercase;letter-spacing:0.06em;padding:2px 5px;border-radius:2px;background:var(--bg4);color:var(--text3);border:0.5px solid var(--border2);}
+.pf-footer{display:flex;align-items:center;gap:0.4rem;}
+.pf-stat{font-size:0.65rem;color:var(--text3);display:flex;align-items:center;gap:0.2rem;}
+.pf-status{font-size:0.57rem;text-transform:uppercase;letter-spacing:0.07em;padding:2px 6px;border-radius:2px;margin-left:auto;}
+.pf-vis-btn{position:absolute;top:0.5rem;right:0.5rem;width:24px;height:24px;border-radius:2px;background:rgba(8,8,8,0.7);border:0.5px solid rgba(201,168,76,0.2);color:var(--text3);font-size:0.65rem;display:flex;align-items:center;justify-content:center;cursor: pointer;transition:all 0.15s;opacity:0;}
+.pf-card:hover .pf-vis-btn{opacity:1;}
+.pf-vis-btn:hover{background:rgba(201,168,76,0.2);color:var(--gold);}
+
+/* PORTFOLIO STATS */
+.pf-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;}
+.pf-stat-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.8rem 1rem;}
+.pf-stat-val{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text);line-height:1;}
+.pf-stat-val span{color:var(--gold);}
+.pf-stat-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-top:0.3rem;}
+
+/* PROFILE VIEW */
+.profile-layout{display:grid;grid-template-columns:280px 1fr;gap:0.75rem;align-items:start;}
+.profile-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.5rem;text-align:center;}
+.profile-avatar-wrap{position:relative;display:inline-block;margin-bottom:1rem;}
+.profile-avatar{width:72px;height:72px;border-radius:50%;background:rgba(201,168,76,0.12);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--gold);margin:0 auto;}
+.profile-edit-btn{position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:var(--gold);border:none;cursor: pointer;display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--bg);}
+.profile-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+.profile-role{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--gold);margin-bottom:0.8rem;}
+.profile-bio{font-size:0.75rem;color:var(--text2);line-height:1.6;margin-bottom:1rem;}
+.profile-tags{display:flex;flex-wrap:wrap;gap:0.3rem;justify-content:center;margin-bottom:1rem;}
+.profile-tag{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.07em;padding:3px 8px;border-radius:2px;border:0.5px solid var(--border);color:var(--text3);}
+.profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;}
+.profile-stat{background:var(--bg3);border-radius:3px;padding:0.5rem;text-align:center;}
+.ps-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);line-height:1;}
+.ps-val span{color:var(--gold);}
+.ps-label{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;}
+
+/* SETTINGS FORM */
+.settings-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.2rem 1.4rem;}
+.settings-section{margin-bottom:1.4rem;}
+.ss-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;color:var(--text);margin-bottom:0.8rem;padding-bottom:0.5rem;border-bottom:0.5px solid var(--border2);}
+.sf-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.6rem;}
+.sf label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);display:block;margin-bottom:0.3rem;}
+.sf-i{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;padding:0.45rem 0.7rem;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);outline:none;cursor: pointer;transition:border-color 0.15s;}
+.sf-i:focus{border-color:var(--border);}
+.sf-sel{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;padding:0.45rem 0.7rem;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);outline:none;cursor: pointer;appearance:none;transition:border-color 0.15s;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:0.5px solid var(--border2);}
+.toggle-row:last-child{border-bottom:none;}
+.toggle-info{}
+.toggle-label{font-size:0.78rem;color:var(--text);font-weight:500;}
+.toggle-sub{font-size:0.65rem;color:var(--text3);margin-top:1px;}
+.toggle{width:36px;height:20px;border-radius:10px;background:var(--bg4);border:0.5px solid var(--border2);position:relative;cursor: pointer;transition:all 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--gold);border-color:var(--gold);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:var(--text3);transition:all 0.2s;}
+.toggle.on::after{left:19px;background:var(--bg);}
+.save-btn{padding:0.55rem 1.4rem;background:var(--gold);border:none;border-radius:2px;font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;}
+.save-btn:hover{background:var(--gold-light);}
+
+/* TOAST */
+.ts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;width:300px;}
+.tt{display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:3px;border:0.5px solid;pointer-events:all;animation:tIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;}
+.tt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.tt-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);}
+.tt-ok::before{background:var(--success);}
+.tt-info{background:rgba(74,158,202,0.1);border-color:rgba(74,158,202,0.25);}
+.tt-info::before{background:var(--info);}
+.tt-b{flex:1;}
+.tt-t{font-size:0.73rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.tt-m{font-size:0.66rem;color:var(--text2);line-height:1.4;}
+.tt-c{background:none;border:none;color:var(--text3);font-size:0.72rem;cursor: pointer;padding:0;}
+@keyframes tIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
+
+/* PROGRESS RING */
+.pring{width:44px;height:44px;}
+.pring svg{width:100%;height:100%;transform:rotate(-90deg);}
+.pr-bg{fill:none;stroke:var(--bg4);stroke-width:4;}
+.pr-fill{fill:none;stroke-width:4;stroke-linecap:round;transition:stroke-dashoffset 1s ease;}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tlogo">OMNI<span>IDEA</span></div>
+    <div class="tbread" id="breadcrumb">Dashboard <b>/ Ana Sayfa</b></div>
+    <div class="tsearch"><span style="color:var(--text3);font-size:0.8rem;">◎</span><input type="text" placeholder="Proje, kişi veya dosya ara..."></div>
+    <div class="tr">
+      <button class="tb tb-gold" onclick="switchView('studio')">+ Yeni Tasarım</button>
+      <div class="notif-wrap">
+        <button class="nb" id="notifBtn" onclick="toggleNotif()">🔔<span class="nd" id="notifDot"></span></button>
+        <div class="notif-dropdown" id="notifDropdown">
+          <div class="nd-header"><span class="nd-title">Bildirimler</span><button class="nd-clear" onclick="clearNotifs()">Tümünü Okundu İşaretle</button></div>
+          <div class="nd-list" id="ndList"></div>
+          <div class="nd-footer"><button onclick="toggleNotif()">Tüm Bildirimleri Gör →</button></div>
+        </div>
+      </div>
+      <div class="av-wrap">
+        <div class="av" id="avatarBtn" onclick="toggleProfile()" id="avatarInitials">?</div>
+        <div class="profile-dropdown" id="profileDropdown">
+          <div class="pd-user"><div class="pd-name" id="pdName">Yükleniyor...</div><div class="pd-role" id="pdRole">Tasarımcı · Free</div></div>
+          <div class="pd-item" onclick="switchView('profile')"><span class="pd-item-icon">👤</span> Profilim</div>
+          <div class="pd-item" onclick="switchView('portfolio')"><span class="pd-item-icon">◈</span> Portföyüm</div>
+          <div class="pd-item" onclick="switchView('settings')"><span class="pd-item-icon">⚙</span> Ayarlar</div>
+          <div class="pd-div"></div>
+          <div class="pd-item pd-logout" onclick="handleSignOut()"><span class="pd-item-icon">→</span> Çıkış Yap</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <span class="sl">Ana Menü</span>
+    <div class="si active" onclick="switchView('dashboard',this)"><span class="si-ico">⊞</span> Dashboard</div>
+    <div class="si" onclick="switchView('studio',this)"><span class="si-ico">◈</span> Stüdyo</div>
+    <div class="si" onclick="switchView('market',this)"><span class="si-ico">⬡</span> Pazar Yeri <span class="si-badge">5</span></div>
+    <div class="si" onclick="switchView('portfolio',this)"><span class="si-ico">✦</span> Portföy</div>
+    <div class="si" onclick="switchView('messages',this)"><span class="si-ico">💬</span> Mesajlar <span class="si-badge">3</span></div>
+    <div class="sdiv"></div>
+    <span class="sl">Projelerim</span>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">🪑</span> Berjer Koltuk</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">💎</span> Gold Yüzük</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">👟</span> Nike Air Konsept</div>
+    <div class="sdiv"></div>
+    <span class="sl">Hesap</span>
+    <div class="si" onclick="switchView('profile',this)"><span class="si-ico">👤</span> Profilim</div>
+    <div class="si" onclick="switchView('settings',this)"><span class="si-ico">⚙</span> Ayarlar</div>
+    <div class="sidebar-bottom">
+      <div class="upgrade-card">
+        <div class="uc-title">Pro Plan ✦</div>
+        <div class="uc-sub">Sınırsız proje, öncelikli üretici erişimi ve AI kredit.</div>
+        <button class="uc-btn" onclick="window.location.href='9-omnidea-plans-api-entegre.html'">Planı Yönet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content" id="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="view active" id="view-dashboard">
+      <div class="welcome">
+        <div class="welcome-left">
+          <div class="welcome-tag">Hoş Geldin</div>
+          <div class="welcome-name" id="welcomeName">... <span id="welcomeLastName">✦</span></div>
+          <div class="welcome-sub">3 aktif projen var · 2 yeni teklif bekleniyor</div>
+        </div>
+        <div class="welcome-right">
+          <button class="tb tb-g" onclick="(function(){var rows=[\'Tarih,Tasarım,Teklif\'];var blob=new Blob([rows.join(\'\n\')],{type:\'text/csv\'});var a=document.createElement(\'a\');a.href=URL.createObjectURL(blob);a.download=\'omnidea-rapor.csv\';a.click();toast(\'ok\',\'İndirildi\',\'Rapor CSV olarak indirildi.\')})()">Raporu İndir</button>
+          <button class="tb tb-gold" onclick="switchView('studio')">+ Yeni Proje</button>
+        </div>
+      </div>
+
+      <!-- METRICS -->
+      <div class="metrics">
+        <div class="mc"><div class="mc-icon">◈</div><div class="mc-label">Toplam Proje</div><div class="mc-val">7<span></span></div><div class="mc-change mc-up">↑ 2 bu ay</div></div>
+        <div class="mc"><div class="mc-icon">⬡</div><div class="mc-label">Aktif Teklif</div><div class="mc-val">2<span>6</span></div><div class="mc-change mc-up">↑ 8 bu hafta</div></div>
+        <div class="mc"><div class="mc-icon">✦</div><div class="mc-label">Tamamlanan İş</div><div class="mc-val">3<span></span></div><div class="mc-change" style="color:var(--text3);">→ Değişmedi</div></div>
+        <div class="mc"><div class="mc-icon">$</div><div class="mc-label">Toplam Harcama</div><div class="mc-val">$<span>4.2K</span></div><div class="mc-change mc-up">↑ $840 bu ay</div></div>
+      </div>
+
+      <div class="main-grid">
+        <!-- CHART + PROJECTS -->
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div class="chart-card">
+            <div class="card-header">
+              <span class="card-title">Aktivite</span>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <span style="font-size:0.62rem;color:var(--text3);display:flex;align-items:center;gap:0.3rem;"><span style="width:8px;height:8px;background:var(--gold);border-radius:1px;display:inline-block;"></span>Tasarım</span>
+                <span style="font-size:0.62rem;color:var(--text3);display:flex;align-items:center;gap:0.3rem;"><span style="width:8px;height:8px;background:var(--info);border-radius:1px;display:inline-block;opacity:0.6;"></span>Teklif</span>
+                <button class="card-action" onclick="(function(b){var opts=['Bu Hafta','Bu Ay','3 Ay','Bu Yıl'];var cur=opts.indexOf(b.textContent);b.textContent=opts[(cur+1)%opts.length]+' ▾';renderChart();})(this)">Bu Ay ▾</button>
+              </div>
+            </div>
+            <div class="chart-wrap" id="chartWrap"></div>
+            <div style="display:flex;justify-content:space-around;margin-top:6px;" id="chartLabels"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="card-header"><span class="card-title">Aktif Projeler</span><button class="card-action" onclick="switchView('studio')">Tümünü Gör →</button></div>
+            <div class="ap-list">
+              <div class="ap"><span class="ap-ico">🪑</span><div class="ap-info"><div class="ap-name">Berjer Koltuk — v3</div><div class="ap-meta">12 teklif · Son: 15 Nisan</div></div><span class="ap-status aps-market">Markette</span><div class="ap-score" style="border-color:var(--success);color:var(--success);">88</div></div>
+              <div class="ap"><span class="ap-ico">💎</span><div class="ap-info"><div class="ap-name">Gold Yüzük Serisi</div><div class="ap-meta">7 teklif · Son: 20 Nisan</div></div><span class="ap-status aps-market">Markette</span><div class="ap-score" style="border-color:var(--success);color:var(--success);">94</div></div>
+              <div class="ap"><span class="ap-ico">👟</span><div class="ap-info"><div class="ap-name">Nike Air Konsept</div><div class="ap-meta">Üretimde · Hanoi Craft Studio</div></div><span class="ap-status aps-prod">Üretimde</span><div class="ap-score" style="border-color:var(--gold);color:var(--gold);">76</div></div>
+              <div class="ap"><span class="ap-ico">⚙️</span><div class="ap-info"><div class="ap-name">Endüstriyel Vida Seti</div><div class="ap-meta">Tasarım aşamasında</div></div><span class="ap-status aps-design">Tasarım</span><div class="ap-score" style="border-color:var(--info);color:var(--info);">91</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+          <div class="quick-card">
+            <div class="card-header"><span class="card-title">Hızlı Erişim</span></div>
+            <div class="qa-list">
+              <div class="qa" onclick="switchView('studio')"><div class="qa-ico" style="background:rgba(201,168,76,0.1);">◈</div><div class="qa-txt"><div class="qa-name">Tasarım Stüdyosu</div><div class="qa-desc">Yeni proje başlat</div></div><span class="qa-arrow">→</span></div>
+              <div class="qa" onclick="switchView('market')"><div class="qa-ico" style="background:rgba(74,158,202,0.1);">⬡</div><div class="qa-txt"><div class="qa-name">Pazar Yeri</div><div class="qa-desc">26 teklif bekliyor</div></div><span class="qa-arrow">→</span></div>
+              <div class="qa" onclick="switchView('portfolio')"><div class="qa-ico" style="background:rgba(76,175,125,0.1);">✦</div><div class="qa-txt"><div class="qa-name">Portföyüm</div><div class="qa-desc">7 tasarım · 3 tamamlandı</div></div><span class="qa-arrow">→</span></div>
+              <div class="qa" onclick="switchView('messages')"><div class="qa-ico" style="background:rgba(224,85,85,0.08);">💬</div><div class="qa-txt"><div class="qa-name">Mesajlar</div><div class="qa-desc">3 okunmamış mesaj</div></div><span class="qa-arrow">→</span></div>
+            </div>
+          </div>
+
+          <div class="quick-card">
+            <div class="card-header"><span class="card-title">Son Teklifler</span><button class="card-action" onclick="switchView('market')">Tümü →</button></div>
+            <div class="bid-item"><div class="bi-av" style="background:#C9A84C22;color:#C9A84C;border:0.5px solid #C9A84C44;">AF</div><div class="bi-info"><div class="bi-n">Artisan Furniture Co.</div><div class="bi-d">Berjer Koltuk · 18 gün</div></div><div class="bi-price">$1.200</div></div>
+            <div class="bid-item"><div class="bi-av" style="background:#4A9ECA22;color:#4A9ECA;border:0.5px solid #4A9ECA44;">MC</div><div class="bi-info"><div class="bi-n">MetalCraft Pro</div><div class="bi-d">Berjer Koltuk · 14 gün</div></div><div class="bi-price">$1.450</div></div>
+            <div class="bid-item"><div class="bi-av" style="background:#9B59B622;color:#9B59B6;border:0.5px solid #9B59B644;">GY</div><div class="bi-info"><div class="bi-n">Gold Jewelers Ltd.</div><div class="bi-d">Gold Yüzük · 10 gün</div></div><div class="bi-price">$680</div></div>
+          </div>
+
+          <div class="quick-card">
+            <div class="card-header"><span class="card-title">Platform Özeti</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.4rem;">
+              <div style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--gold);">88<span style="font-size:0.7rem;color:var(--text3)">/100</span></div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;">Ort. Skor</div></div>
+              <div style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--success);">3</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;">Aktif Üretim</div></div>
+              <div style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--text);">26</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;">Toplam Teklif</div></div>
+              <div style="background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:var(--info);">4.8★</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;">Üretici Puanı</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PORTFÖY ── -->
+    <div class="view" id="view-portfolio">
+      <div class="portfolio-header">
+        <div>
+          <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold);margin-bottom:0.3rem;">Portföy</div>
+          <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text);">Tasarımlarım</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <div class="pf-filters">
+            <button class="pf-f pfa" onclick="pfFilter(this)">Tümü</button>
+            <button class="pf-f" onclick="pfFilter(this)">Markette</button>
+            <button class="pf-f" onclick="pfFilter(this)">Üretimde</button>
+            <button class="pf-f" onclick="pfFilter(this)">Tamamlandı</button>
+          </div>
+          <button class="tb tb-gold" onclick="switchView('studio')">+ Yeni Proje</button>
+        </div>
+      </div>
+
+      <div class="pf-stats-row">
+        <div class="pf-stat-card"><div class="pf-stat-val">7</div><div class="pf-stat-label">Toplam Tasarım</div></div>
+        <div class="pf-stat-card"><div class="pf-stat-val"><span>26</span></div><div class="pf-stat-label">Alınan Teklif</div></div>
+        <div class="pf-stat-card"><div class="pf-stat-val">3</div><div class="pf-stat-label">Tamamlanan</div></div>
+        <div class="pf-stat-card"><div class="pf-stat-val">$<span>4.2K</span></div><div class="pf-stat-label">Toplam Harcama</div></div>
+      </div>
+
+      <div class="portfolio-grid" id="portfolioGrid"></div>
+    </div>
+
+    <!-- ── PROFİL ── -->
+    <div class="view" id="view-profile">
+      <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:1rem;">Profilim</div>
+      <div class="profile-layout">
+        <div class="profile-card">
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar">HB</div>
+            <button class="profile-edit-btn" onclick="(function(){var tabs=document.querySelectorAll('.sidebar-tab');tabs.forEach(function(t){t.classList.remove('active')});var profTab=document.querySelector('.sidebar-tab[onclick*=profile]');if(profTab)profTab.click();else switchTab('profile')})()">✎</button>
+          </div>
+          <div class="profile-name" id="profileName">Yükleniyor...</div>
+          <div class="profile-role">Tasarımcı · Pro</div>
+          <div class="profile-bio">Mobilya ve endüstriyel tasarım üzerine çalışıyorum. Zenith Furniture kurucusu. Özbekistan merkezli.</div>
+          <div class="profile-tags">
+            <span class="profile-tag">Mobilya</span>
+            <span class="profile-tag">Endüstriyel</span>
+            <span class="profile-tag">3D Tasarım</span>
+            <span class="profile-tag">İç Mekan</span>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat"><div class="ps-val">7</div><div class="ps-label">Proje</div></div>
+            <div class="profile-stat"><div class="ps-val"><span>26</span></div><div class="ps-label">Teklif</div></div>
+            <div class="profile-stat"><div class="ps-val">4.8<span>★</span></div><div class="ps-label">Puan</div></div>
+            <div class="profile-stat"><div class="ps-val">3</div><div class="ps-label">Tamamlandı</div></div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-section">
+            <div class="ss-title">Kişisel Bilgiler</div>
+            <div class="sf-row">
+              <div class="sf"><label>Ad</label><input class="sf-i" value="Hasan"></div>
+              <div class="sf"><label>Soyad</label><input class="sf-i" value="Bey"></div>
+            </div>
+            <div class="sf-row">
+              <div class="sf"><label>E-posta</label><input class="sf-i" value="hasan@zenfurniture.uz" type="email"></div>
+              <div class="sf"><label>Telefon</label><input class="sf-i" value="+998 90 123 45 67"></div>
+            </div>
+            <div class="sf-row">
+              <div class="sf"><label>Ülke</label><select class="sf-sel"><option>Özbekistan</option><option>Türkiye</option><option>Almanya</option></select></div>
+              <div class="sf"><label>Şehir</label><input class="sf-i" value="Taşkent"></div>
+            </div>
+          </div>
+          <div class="settings-section">
+            <div class="ss-title">Firma Bilgileri</div>
+            <div class="sf-row">
+              <div class="sf"><label>Firma Adı</label><input class="sf-i" value="Zenith Furniture & Interior"></div>
+              <div class="sf"><label>Sektör</label><select class="sf-sel"><option selected>Mobilya</option><option>Endüstriyel</option></select></div>
+            </div>
+          </div>
+          <button class="save-btn" onclick="saveProfile()">Kaydet ✦</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AYARLAR ── -->
+    <div class="view" id="view-settings">
+      <div style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:1rem;">Ayarlar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;align-items:start;">
+        <div class="settings-card">
+          <div class="settings-section">
+            <div class="ss-title">Bildirimler</div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Yeni Teklif</div><div class="toggle-sub">Projena teklif geldiğinde bildir</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Mesajlar</div><div class="toggle-sub">Yeni mesajlarda bildir</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Üretim Güncellemesi</div><div class="toggle-sub">Üretim aşaması değiştiğinde</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Zeka Uyarıları</div><div class="toggle-sub">Tasarım sorunları tespit edildiğinde</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Promosyon</div><div class="toggle-sub">Kampanya ve haberler</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-section">
+            <div class="ss-title">Gizlilik</div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Portföy Herkese Açık</div><div class="toggle-sub">Tasarımların pazar yerinde görünsün</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Profil Herkese Açık</div><div class="toggle-sub">Üreticiler profilini görebilsin</div></div><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Fiyat Teklifleri Gizli</div><div class="toggle-sub">Kabul ettiğin fiyatlar gizli kalsın</div></div><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+          <div class="settings-section">
+            <div class="ss-title">Dil & Bölge</div>
+            <div class="sf-row">
+              <div class="sf"><label>Dil</label><select class="sf-sel"><option>Türkçe</option><option>English</option><option>O'zbek</option></select></div>
+              <div class="sf"><label>Para Birimi</label><select class="sf-sel"><option>USD $</option><option>EUR €</option><option>UZS</option></select></div>
+            </div>
+          </div>
+          <button class="save-btn" onclick="saveSettings()">Ayarları Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PLACEHOLDER VIEWS ── -->
+    <div class="view" id="view-studio">
+      <div style="text-align:center;padding:4rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">◈</div><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;">Tasarım Stüdyosu</div><div style="font-size:0.82rem;color:var(--text2);margin-bottom:1.5rem;">omnidea-studio.html dosyasını açın</div><a href="omnidea-studio.html"><button class="tb tb-gold" onclick="window.location.href='3-omnidea-studio-entegre.html'">Stüdyoya Git →</button></a></div>
+    </div>
+    <div class="view" id="view-market">
+      <div style="text-align:center;padding:4rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">⬡</div><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;">Pazar Yeri</div><div style="font-size:0.82rem;color:var(--text2);margin-bottom:1.5rem;">omnidea-market.html dosyasını açın</div><a href="omnidea-market.html"><button class="tb tb-gold" onclick="window.location.href='4-omnidea-market-entegre.html'">Markete Git →</button></a></div>
+    </div>
+    <div class="view" id="view-messages">
+      <div style="text-align:center;padding:4rem 2rem;"><div style="font-size:3rem;margin-bottom:1rem;">💬</div><div style="font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:0.5rem;">Mesajlar</div><div style="font-size:0.82rem;color:var(--text2);">3 okunmamış mesajın var.</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="ts" id="ts"></div>
+
+<script>
+// CURSOR
+const cur=document.getElementById('cursor'),crng=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx-3.5+'px';cur.style.top=my-3.5+'px';});
+(function aR(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;crng.style.left=rx-14+'px';crng.style.top=ry-14+'px';requestAnimationFrame(aR);})();
+document.addEventListener('mouseover',e=>{if(e.target.closest('button,a,.mc,.qa,.ap,.pf-card,.si,.bi-av,.ni,.pd-item,.toggle')){{cur.style.transform='scale(1.8)';crng.style.transform='scale(1.3)';crng.style.borderColor='rgba(201,168,76,0.6)';}}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('button,a,.mc,.qa,.ap,.pf-card,.si,.bi-av,.ni,.pd-item,.toggle')){{cur.style.transform='scale(1)';crng.style.transform='scale(1)';crng.style.borderColor='rgba(201,168,76,0.3)';}}});
+
+// CLOSE DROPDOWNS ON OUTSIDE CLICK
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.notif-wrap'))document.getElementById('notifDropdown').classList.remove('open');
+  if(!e.target.closest('.av-wrap'))document.getElementById('profileDropdown').classList.remove('open');
+});
+
+// VIEW SWITCH
+const views=['dashboard','portfolio','profile','settings','studio','market','messages'];
+const breadcrumbs={dashboard:'Dashboard <b>/ Ana Sayfa</b>',portfolio:'Dashboard <b>/ Portföy</b>',profile:'Dashboard <b>/ Profilim</b>',settings:'Dashboard <b>/ Ayarlar</b>',studio:'Dashboard <b>/ Stüdyo</b>',market:'Dashboard <b>/ Pazar Yeri</b>',messages:'Dashboard <b>/ Mesajlar</b>'};
+function switchView(v,navEl){
+  views.forEach(id=>{document.getElementById('view-'+id).classList.remove('active');});
+  document.getElementById('view-'+v).classList.add('active');
+  document.getElementById('breadcrumb').innerHTML=breadcrumbs[v]||'Dashboard';
+  document.querySelectorAll('.si').forEach(s=>s.classList.remove('active'));
+  if(navEl)navEl.classList.add('active');
+  document.getElementById('profileDropdown').classList.remove('open');
+  document.getElementById('notifDropdown').classList.remove('open');
+  document.getElementById('content').scrollTop=0;
+}
+function setNav(el){document.querySelectorAll('.si').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+
+// NOTIFICATIONS
+const NOTIFS=[
+  {type:'bid',color:'var(--gold)',title:'Yeni Teklif Alındı','msg':'Artisan Furniture Co. — $1.200 · 18 gün · Berjer Koltuk',time:'5 dk önce',action:'Teklifi Gör',unread:true},
+  {type:'bid',color:'var(--info)',title:'Yeni Teklif Alındı',msg:'MetalCraft Pro — $1.450 · 14 gün · Berjer Koltuk',time:'12 dk önce',action:'Teklifi Gör',unread:true},
+  {type:'msg',color:'var(--success)',title:'Yeni Mesaj',msg:'Gold Jewelers: "Yüzük için 10K altın kullanabilir miyiz?"',time:'1 saat önce',action:'Yanıtla',unread:true},
+  {type:'prod',color:'var(--warn)',title:'Üretim Güncellemesi',msg:'Nike Air Konsept — Hanoi Craft Studio üretimi başlattı.',time:'3 saat önce',action:'Takip Et',unread:false},
+  {type:'zeka',color:'var(--error)',title:'Zeka Uyarısı',msg:'Endüstriyel Vida — Tolerans değeri üretim standartlarının dışında.',time:'Dün',action:'Stüdyoya Git',unread:false},
+];
+function renderNotifs(){
+  const l=document.getElementById('ndList');l.innerHTML='';
+  NOTIFS.forEach((n,i)=>{
+    const d=document.createElement('div');
+    d.className='ni'+(n.unread?' unread':'');
+    d.innerHTML=`<div class="ni-dot" style="background:${n.color};"></div><div class="ni-body"><div class="ni-title">${n.title}</div><div class="ni-msg">${n.msg}</div><div class="ni-time">${n.time}</div>${n.action?`<button class="ni-act" onclick="markRead(${i})">${n.action} →</button>`:''}</div>`;
+    l.appendChild(d);
+  });
+  const unread=NOTIFS.filter(n=>n.unread).length;
+  document.getElementById('notifDot').style.display=unread>0?'block':'none';
+}
+function toggleNotif(){
+  const d=document.getElementById('notifDropdown');
+  d.classList.toggle('open');
+  document.getElementById('profileDropdown').classList.remove('open');
+}
+function toggleProfile(){
+  const d=document.getElementById('profileDropdown');
+  d.classList.toggle('open');
+  document.getElementById('notifDropdown').classList.remove('open');
+}
+function clearNotifs(){NOTIFS.forEach(n=>n.unread=false);renderNotifs();toast('ok','Tüm bildirimler okundu','');}
+function markRead(i){NOTIFS[i].unread=false;renderNotifs();}
+
+// CHART
+function renderChart(){
+  const data=[
+    {label:'Mar 10',d:2,b:1},{label:'Mar 11',d:0,b:3},{label:'Mar 12',d:1,b:2},
+    {label:'Mar 13',d:3,b:0},{label:'Mar 14',d:1,b:4},{label:'Mar 15',d:0,b:2},
+    {label:'Mar 16',d:2,b:5},
+  ];
+  const maxV=Math.max(...data.map(d=>Math.max(d.d,d.b)),1);
+  const wrap=document.getElementById('chartWrap');const lbls=document.getElementById('chartLabels');
+  wrap.innerHTML='';lbls.innerHTML='';
+  data.forEach(d=>{
+    const col=document.createElement('div');col.className='bar-col';
+    const bd=document.createElement('div');bd.className='bar gold';bd.style.height=Math.max(4,(d.d/maxV)*120)+'px';bd.title='Tasarım: '+d.d;
+    const bb=document.createElement('div');bb.className='bar info';bb.style.height=Math.max(4,(d.b/maxV)*120)+'px';bb.title='Teklif: '+d.b;
+    col.appendChild(bd);col.appendChild(bb);wrap.appendChild(col);
+    const lbl=document.createElement('div');lbl.style.cssText='font-size:0.55rem;color:var(--text3);text-align:center;flex:1;';lbl.textContent=d.label.split(' ')[1];lbls.appendChild(lbl);
+  });
+}
+
+// PORTFOLIO
+const PORTFOLIO=[
+  {ico:'🪑',name:'Berjer Koltuk — Modern',sector:'Mobilya',date:'15 Mar 2025',tags:['STL','DXF','PDF'],bids:12,score:88,status:'Markette',statusCls:'aps-market'},
+  {ico:'💎',name:'Gold Yüzük Serisi',sector:'Takı',date:'10 Mar 2025',tags:['STL','OBJ'],bids:7,score:94,status:'Markette',statusCls:'aps-market'},
+  {ico:'👟',name:'Nike Air Konsept',sector:'Ayakkabı',date:'5 Mar 2025',tags:['3D','DXF'],bids:5,score:76,status:'Üretimde',statusCls:'aps-prod'},
+  {ico:'⚙️',name:'Endüstriyel Vida Seti',sector:'Endüstriyel',date:'28 Şub 2025',tags:['STL','PDF'],bids:9,score:91,status:'Tasarım',statusCls:'aps-design'},
+  {ico:'🚗',name:'Araç Jant Kapağı',sector:'Oto',date:'20 Şub 2025',tags:['STL','DXF','OBJ'],bids:4,score:82,status:'Tamamlandı',statusCls:'aps-prod'},
+  {ico:'👗',name:'Minimalist Trençkot',sector:'Kıyafet',date:'12 Şub 2025',tags:['2D','PDF'],bids:6,score:79,status:'Tamamlandı',statusCls:'aps-prod'},
+];
+function renderPortfolio(){
+  const g=document.getElementById('portfolioGrid');g.innerHTML='';
+  PORTFOLIO.forEach(p=>{
+    const sc=p.score>=85?'var(--success)':p.score>=70?'var(--gold)':'var(--error)';
+    const c=document.createElement('div');c.className='pf-card';
+    c.innerHTML=`
+      <div class="pf-thumb">${p.ico}
+        <div class="pf-thumb-overlay">
+          <span class="pf-sector">${p.sector}</span>
+          <span class="pf-score" style="color:${sc};">${p.score}/100</span>
+        </div>
+      </div>
+      <button class="pf-vis-btn" title="Görünürlük" onclick="event.stopPropagation();toast('info','Görünürlük','Proje görünürlüğü değiştirildi.')">👁</button>
+      <div class="pf-body">
+        <div class="pf-name">${p.name}</div>
+        <div class="pf-meta">${p.date}</div>
+        <div class="pf-tags">${p.tags.map(t=>`<span class="pf-tag">${t}</span>`).join('')}</div>
+        <div class="pf-footer">
+          <span class="pf-stat">◎ ${p.bids}</span>
+          <span class="pf-status ${p.statusCls}">${p.status}</span>
+        </div>
+      </div>`;
+    g.appendChild(c);
+  });
+}
+function pfFilter(el){document.querySelectorAll('.pf-f').forEach(f=>f.classList.remove('pfa'));el.classList.add('pfa');}
+
+// SAVE
+function saveProfile(){toast('ok','Profil Kaydedildi','Bilgilerin güncellendi.');}
+function saveSettings(){toast('ok','Ayarlar Kaydedildi','Tercihler güncellendi.');}
+
+// TOAST
+function toast(type,title,msg){
+  const s=document.getElementById('ts');
+  const icons={ok:'✦',info:'◈',warn:'◎'};
+  const t=document.createElement('div');
+  t.className='tt tt-'+type;
+  t.innerHTML=`<div style="font-size:0.8rem;flex-shrink:0;">${icons[type]||'◈'}</div><div class="tt-b"><div class="tt-t">${title}</div><div class="tt-m">${msg}</div></div><button class="tt-c" onclick="this.parentElement.remove()">✕</button>`;
+  s.appendChild(t);setTimeout(()=>t.remove&&t.remove(),4000);
+}
+
+// ── SUPABASE ENTEGRASYONU ────────────────────────────────────────────────────
+
+// Oturum kontrolü — giriş yapılmamışsa auth'a gönder
+async function checkSession() {
+  let session = null; try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) { console.warn("[OMNIDEA] getSession hatası:", e.message); }
+  if (!session && SUPABASE_READY) { window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html'; return null; } else if (!session) { console.warn('[OMNIDEA] Demo mod: oturum yok ama sayfa açıldı'); }
+  return session;
+}
+
+// Profil bilgilerini yükle ve UI'a yansıt
+async function loadProfile(userId) {
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('full_name, avatar_url, plan, credits')
+    .eq('id', userId)
+    .single();
+
+  if (!profile) return;
+
+  // Avatar kısaltması (ör. "Hasan Yılmaz" → "HY")
+  const fullName = profile.full_name || session?.user?.user_metadata?.full_name || session?.user?.email?.split('@')[0] || 'Kullanıcı';
+  const nameParts = fullName.trim().split(' ');
+  const firstName = nameParts[0] || 'Kullanıcı';
+  const lastName  = nameParts.slice(1).join(' ') || '';
+  const initials  = nameParts.map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+  // Avatar
+  document.querySelectorAll('.av, #avatarBtn, #avatarInitials').forEach(el => el.textContent = initials);
+
+  // Hoş geldin alanı
+  const wn = document.getElementById('welcomeName');
+  if (wn) { wn.childNodes[0].textContent = firstName + ' '; }
+  const wl = document.getElementById('welcomeLastName');
+  if (wl) wl.textContent = (lastName || '') + ' ✦';
+
+  // Profil dropdown
+  const pdName = document.getElementById('pdName');
+  if (pdName) pdName.textContent = fullName;
+  const pdRole = document.getElementById('pdRole');
+  if (pdRole) pdRole.textContent = (profile.role || 'Tasarımcı') + ' · ' + (profile.plan || 'free').toUpperCase();
+
+  // Profile name alanları
+  document.querySelectorAll('[id="profileName"]').forEach(el => el.textContent = fullName);
+
+  // Plan rozeti
+  const planBadge = document.querySelector('.plan-badge');
+  if (planBadge) planBadge.textContent = (profile.plan || 'free').toUpperCase();
+
+  toast('ok', \`Hoş Geldin, \${firstName}!\`, 'Günlük özetin hazır.');
+}
+
+// Bildirimleri Supabase'den çek
+async function loadNotifications(userId) {
+  const { data: notifs } = await sb
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (!notifs || !notifs.length) { renderNotifs(); return; }
+
+  const colorMap = { message: 'var(--gold)', sale: 'var(--success)', system: 'var(--info)', job_complete: 'var(--success)' };
+
+  NOTIFS.length = 0; // diziyi temizle
+  notifs.forEach(n => {
+    NOTIFS.push({
+      title:  n.title,
+      msg:    n.body || '',
+      time:   new Date(n.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      unread: !n.read,
+      color:  colorMap[n.type] || 'var(--text3)',
+    });
+  });
+  renderNotifs();
+
+  // Realtime: yeni bildirim gelince listeye ekle
+  sb.channel('notifications')
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'notifications',
+      filter: `user_id=eq.${userId}`
+    }, payload => {
+      const n = payload.new;
+      NOTIFS.unshift({ title: n.title, msg: n.body || '', time: 'şimdi', unread: true, color: 'var(--gold)' });
+      renderNotifs();
+      toast('info', n.title, n.body || '');
+    })
+    .subscribe();
+}
+
+// Projeleri Supabase'den çek
+async function loadProjects(userId) {
+  const { data: projects } = await sb
+    .from('projects')
+    .select('id, title, status, created_at, data')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(12);
+
+  if (!projects || !projects.length) { renderPortfolio(); return; }
+
+  const statusLabel = { draft: 'Tasarım', published: 'Markette', archived: 'Tamamlandı' };
+  const statusCls   = { draft: 'aps-design', published: 'aps-market', archived: 'aps-prod' };
+
+  PORTFOLIO.length = 0; // diziyi temizle
+  projects.forEach(p => {
+    PORTFOLIO.push({
+      ico:       p.data?.icon || '◈',
+      name:      p.title,
+      sector:    p.data?.sector || '—',
+      date:      new Date(p.created_at).toLocaleDateString('tr-TR'),
+      tags:      p.data?.tags || ['STL'],
+      bids:      p.data?.bid_count || 0,
+      score:     p.data?.score || 0,
+      status:    statusLabel[p.status] || p.status,
+      statusCls: statusCls[p.status] || 'aps-design',
+    });
+  });
+  renderPortfolio();
+}
+
+// Çıkış yap
+async function handleSignOut() {
+  await sb.auth.signOut();
+  if (SUPABASE_READY) window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html';
+}
+
+// ── SAYFA BAŞLATMA ───────────────────────────────────────────────────────────
+(async () => {
+  renderChart(); // chart mock data ile hızlı render
+
+  const session = await checkSession();
+  if (!session) return;
+
+  await Promise.all([
+    loadProfile(session.user.id),
+    loadNotifications(session.user.id),
+    loadProjects(session.user.id),
+  ]);
+})();
+</script>
+</body>
+</html>
