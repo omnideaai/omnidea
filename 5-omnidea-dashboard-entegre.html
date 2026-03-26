@@ -13,7 +13,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
 
   // Demo modu koruması: URL hâlâ placeholder ise sayfayı kırmadan çalıştır
-  const SUPABASE_READY = !SUPABASE_URL.includes('jucamvtjstmdyynyeyap') && !SUPABASE_KEY.includes('ANON_PUBLIC');
+  const SUPABASE_READY = true; // Gerçek değerler yüklendi
 
   const _demoSession = {
     user: { id: 'demo-user', email: 'demo@omnidea.app',
@@ -526,7 +526,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
             <div class="profile-avatar">HB</div>
             <button class="profile-edit-btn" onclick="(function(){var tabs=document.querySelectorAll('.sidebar-tab');tabs.forEach(function(t){t.classList.remove('active')});var profTab=document.querySelector('.sidebar-tab[onclick*=profile]');if(profTab)profTab.click();else switchTab('profile')})()">✎</button>
           </div>
-          <div class="profile-name">Hasan Bey</div>
+          <div class="profile-name" id="profileName">Yükleniyor...</div>
           <div class="profile-role">Tasarımcı · Pro</div>
           <div class="profile-bio">Mobilya ve endüstriyel tasarım üzerine çalışıyorum. Zenith Furniture kurucusu. Özbekistan merkezli.</div>
           <div class="profile-tags">
@@ -755,7 +755,7 @@ function toast(type,title,msg){
 // Oturum kontrolü — giriş yapılmamışsa auth'a gönder
 async function checkSession() {
   let session = null; try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) { console.warn("[OMNIDEA] getSession hatası:", e.message); }
-  if (!session && SUPABASE_READY) { window.location.href = '2-omnidea-auth-GİRİS.html'; return null; } else if (!session) { console.warn('[OMNIDEA] Demo mod: oturum yok ama sayfa açıldı'); }
+  if (!session && SUPABASE_READY) { window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html'; return null; } else if (!session) { console.warn('[OMNIDEA] Demo mod: oturum yok ama sayfa açıldı'); }
   return session;
 }
 
@@ -857,7 +857,7 @@ async function loadProjects(userId) {
 // Çıkış yap
 async function handleSignOut() {
   await sb.auth.signOut();
-  if (SUPABASE_READY) window.location.href = '2-omnidea-auth-GİRİS.html';
+  if (SUPABASE_READY) window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html';
 }
 
 // ── SAYFA BAŞLATMA ───────────────────────────────────────────────────────────
