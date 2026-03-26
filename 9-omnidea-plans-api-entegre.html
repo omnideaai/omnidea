@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Planlar & API</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;--gold-dim:#8A6E2F;
+  --bg:#080808;--bg2:#0F0F0F;--bg3:#161616;--bg4:#1E1E1E;--bg5:#242424;
+  --text:#F0EDE6;--text2:#A09A8E;--text3:#5A554E;
+  --border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.07);
+  --success:#4CAF7D;--error:#E05555;--info:#4A9ECA;--warn:#E8A23A;
+  --purple:#8B5CF6;
+}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);cursor: default;overflow-x:hidden;}
+.cursor{width:7px;height:7px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transition:transform 0.1s;}
+.cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transition:all 0.12s;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;background:rgba(8,8,8,0.92);border-bottom:0.5px solid var(--border2);height:48px;backdrop-filter:blur(16px);}
+.tlogo{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;letter-spacing:0.08em;color:var(--text);padding:0 1.2rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;}
+.tlogo span{color:var(--gold);}
+.tnav{display:flex;height:100%;flex:1;}
+.tnav-item{padding:0 1.1rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;height:100%;}
+.tnav-item:hover{color:var(--text2);}
+.tnav-item.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tr{display:flex;align-items:center;gap:0.6rem;padding:0 1rem;}
+.tb{font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:2px;border:none;cursor: pointer;transition:all 0.2s;}
+.tb-g{background:none;color:var(--text2);border:0.5px solid var(--border2);}
+.tb-g:hover{border-color:var(--border);color:var(--text);}
+.tb-gold{background:var(--gold);color:var(--bg);}
+.tb-gold:hover{background:var(--gold-light);}
+.av{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:var(--gold);}
+
+/* PANEL VIEWS */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ════════════════════════════════
+   PANEL 1: ABONELİK PLANLARI
+════════════════════════════════ */
+
+/* PLAN HERO */
+.plan-hero{padding:4rem 2rem 3rem;text-align:center;position:relative;overflow:hidden;}
+.ph-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;}
+.ph-glow{position:absolute;width:700px;height:400px;background:radial-gradient(ellipse,rgba(201,168,76,0.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.ph-tag{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);border:0.5px solid var(--border);padding:0.4rem 1rem;border-radius:2px;margin-bottom:1.2rem;animation:fadeUp 0.6s ease forwards;opacity:0;}
+.ph-title{font-family:'Syne',sans-serif;font-size:clamp(2rem,4vw,3.2rem);font-weight:800;color:var(--text);letter-spacing:-0.02em;line-height:1.05;margin-bottom:0.8rem;animation:fadeUp 0.6s ease 0.1s forwards;opacity:0;}
+.ph-title em{font-style:normal;color:var(--gold);}
+.ph-sub{font-size:0.9rem;color:var(--text2);font-weight:300;max-width:480px;margin:0 auto 2rem;line-height:1.7;animation:fadeUp 0.6s ease 0.2s forwards;opacity:0;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+/* BILLING TOGGLE */
+.billing-toggle{display:inline-flex;align-items:center;gap:1rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:30px;padding:4px;margin-bottom:3rem;animation:fadeUp 0.6s ease 0.3s forwards;opacity:0;}
+.bt-btn{padding:0.45rem 1.2rem;border-radius:24px;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:500;border:none;cursor: pointer;transition:all 0.2s;color:var(--text3);background:none;}
+.bt-btn.active{background:var(--gold);color:var(--bg);}
+.bt-save{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;background:rgba(76,175,125,0.12);color:var(--success);border:0.5px solid rgba(76,175,125,0.2);padding:2px 8px;border-radius:10px;}
+
+/* PLANS GRID */
+.plans-wrap{max-width:1100px;margin:0 auto;padding:0 2rem 4rem;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:2rem;}
+.plan-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:2rem;position:relative;overflow:hidden;transition:border-color 0.2s,transform 0.2s;cursor: pointer;}
+.plan-card:hover{border-color:var(--border);transform:translateY(-3px);}
+.plan-card.featured{border-color:var(--gold);background:var(--bg3);}
+.plan-card.featured::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.featured-label{position:absolute;top:1rem;right:1rem;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;background:var(--gold);color:var(--bg);padding:3px 8px;border-radius:2px;font-weight:700;}
+.plan-name{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:0.5rem;}
+.plan-price{font-family:'Syne',sans-serif;font-size:2.4rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:0.3rem;}
+.plan-price sub{font-size:0.9rem;font-weight:400;color:var(--text3);vertical-align:baseline;}
+.plan-price sup{font-size:1rem;font-weight:600;color:var(--text2);vertical-align:top;margin-top:0.3rem;display:inline-block;}
+.plan-period{font-size:0.72rem;color:var(--text3);margin-bottom:1.2rem;}
+.plan-desc{font-size:0.8rem;color:var(--text2);font-weight:300;line-height:1.6;margin-bottom:1.5rem;min-height:48px;}
+.plan-features{display:flex;flex-direction:column;gap:0.5rem;margin-bottom:2rem;}
+.pf-item{display:flex;align-items:flex-start;gap:0.6rem;font-size:0.78rem;color:var(--text2);}
+.pf-check{color:var(--success);flex-shrink:0;font-size:0.75rem;margin-top:1px;}
+.pf-cross{color:var(--text3);flex-shrink:0;font-size:0.75rem;margin-top:1px;}
+.pf-item.disabled{color:var(--text3);}
+.plan-btn{width:100%;padding:0.75rem;border-radius:3px;font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;cursor: pointer;transition:all 0.2s;border:0.5px solid;}
+.pb-ghost{background:none;border-color:var(--border2);color:var(--text2);}
+.pb-ghost:hover{border-color:var(--border);color:var(--text);}
+.pb-gold{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+.pb-gold:hover{background:var(--gold-light);}
+.pb-outline{background:none;border-color:var(--border);color:var(--text);}
+.pb-outline:hover{background:rgba(201,168,76,0.06);border-color:var(--gold);color:var(--gold);}
+
+/* PLAN COMPARISON */
+.comparison-wrap{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;overflow:hidden;margin-bottom:2rem;}
+.comp-header{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;border-bottom:0.5px solid var(--border2);}
+.comp-col-title{padding:0.8rem 1rem;font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;color:var(--text);text-align:center;border-right:0.5px solid var(--border2);}
+.comp-col-title:first-child{text-align:left;color:var(--text3);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;}
+.comp-col-title:last-child{border-right:none;color:var(--gold);}
+.comp-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;border-bottom:0.5px solid var(--border2);}
+.comp-row:last-child{border-bottom:none;}
+.comp-row:hover{background:var(--bg3);}
+.comp-cell{padding:0.65rem 1rem;font-size:0.75rem;text-align:center;border-right:0.5px solid var(--border2);color:var(--text2);}
+.comp-cell:first-child{text-align:left;color:var(--text);}
+.comp-cell:last-child{border-right:none;}
+.cc-yes{color:var(--success);}
+.cc-no{color:var(--text3);}
+.cc-val{color:var(--gold);font-weight:500;}
+.comp-section-header{background:var(--bg3);padding:0.5rem 1rem;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);}
+
+/* FAQ */
+.faq-wrap{max-width:700px;margin:0 auto;padding:0 2rem 4rem;}
+.faq-title{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text);text-align:center;margin-bottom:1.5rem;}
+.faq-item{border-bottom:0.5px solid var(--border2);}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;padding:1rem 0;font-size:0.85rem;font-weight:500;color:var(--text);background:none;border:none;cursor: pointer;text-align:left;font-family:'DM Sans',sans-serif;transition:color 0.15s;}
+.faq-q:hover{color:var(--gold);}
+.faq-icon{font-size:0.8rem;color:var(--text3);transition:transform 0.2s;flex-shrink:0;}
+.faq-icon.open{transform:rotate(45deg);color:var(--gold);}
+.faq-a{font-size:0.8rem;color:var(--text2);line-height:1.7;padding-bottom:1rem;display:none;font-weight:300;}
+.faq-a.open{display:block;}
+
+/* ════════════════════════════════
+   PANEL 2: ONBOARDING
+════════════════════════════════ */
+.onboard-wrap{max-width:700px;margin:0 auto;padding:3rem 2rem;min-height:100vh;display:flex;flex-direction:column;justify-content:center;}
+.ob-progress{display:flex;align-items:center;gap:0;margin-bottom:3rem;}
+.ob-step{display:flex;align-items:center;gap:0;}
+.ob-dot{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:0.68rem;font-weight:700;color:var(--text3);transition:all 0.3s;flex-shrink:0;}
+.ob-dot.done{background:var(--success);border-color:var(--success);color:#fff;}
+.ob-dot.active{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+.ob-line{flex:1;height:1px;background:var(--border2);transition:background 0.3s;min-width:40px;}
+.ob-line.done{background:var(--success);}
+.ob-step-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);text-align:center;margin-top:0.3rem;width:28px;}
+
+/* STEP CONTENT */
+.ob-step-content{display:none;animation:fadeUp 0.4s ease;}
+.ob-step-content.active{display:block;}
+.ob-step-title{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;color:var(--text);margin-bottom:0.4rem;letter-spacing:-0.01em;}
+.ob-step-sub{font-size:0.88rem;color:var(--text2);font-weight:300;margin-bottom:2rem;line-height:1.6;}
+
+/* ROLE CARDS */
+.ob-role-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:2rem;}
+.ob-role-card{border:0.5px solid var(--border2);border-radius:4px;padding:1.5rem;cursor: pointer;transition:all 0.2s;background:var(--bg2);position:relative;overflow:hidden;}
+.ob-role-card:hover{border-color:var(--border);background:var(--bg3);}
+.ob-role-card.selected{border-color:var(--gold);background:rgba(201,168,76,0.05);}
+.ob-role-card.selected::after{content:'✦';position:absolute;top:0.8rem;right:0.8rem;font-size:0.7rem;color:var(--gold);}
+.ob-role-icon{font-size:2rem;margin-bottom:0.8rem;}
+.ob-role-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.4rem;}
+.ob-role-desc{font-size:0.78rem;color:var(--text2);line-height:1.6;font-weight:300;}
+.ob-role-features{display:flex;flex-direction:column;gap:0.3rem;margin-top:0.8rem;}
+.ob-rf{font-size:0.7rem;color:var(--text3);display:flex;align-items:center;gap:0.4rem;}
+.ob-rf::before{content:'→';color:var(--gold);font-size:0.65rem;}
+
+/* SECTOR MULTISELECT */
+.ob-sector-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:2rem;}
+.ob-sector-btn{padding:0.65rem 0.5rem;border:0.5px solid var(--border2);border-radius:3px;background:var(--bg2);cursor: pointer;transition:all 0.18s;text-align:center;}
+.ob-sector-btn:hover{border-color:var(--border);background:var(--bg3);}
+.ob-sector-btn.selected{border-color:var(--gold);background:rgba(201,168,76,0.06);}
+.ob-sector-ico{font-size:1.2rem;margin-bottom:0.3rem;}
+.ob-sector-name{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);display:block;}
+.ob-sector-btn.selected .ob-sector-name{color:var(--gold);}
+
+/* FORM FIELDS */
+.ob-form{display:flex;flex-direction:column;gap:0.8rem;margin-bottom:2rem;}
+.ob-field label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);display:block;margin-bottom:0.35rem;}
+.ob-input{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--text);outline:none;cursor: pointer;transition:border-color 0.15s;}
+.ob-input:focus{border-color:var(--border);}
+.ob-input::placeholder{color:var(--text3);}
+.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;}
+.ob-select{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.6rem 0.85rem;font-family:'DM Sans',sans-serif;font-size:0.85rem;color:var(--text);outline:none;cursor: pointer;appearance:none;transition:border-color 0.15s;}
+.ob-select:focus{border-color:var(--border);}
+
+/* SUCCESS STATE */
+.ob-success{text-align:center;padding:2rem 0;}
+.ob-success-ring{width:80px;height:80px;border-radius:50%;border:1.5px solid var(--success);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;font-size:2rem;animation:successPop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+@keyframes successPop{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}
+.ob-next-btn{width:100%;padding:0.85rem;background:var(--gold);border:none;border-radius:3px;font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;}
+.ob-next-btn:hover{background:var(--gold-light);}
+.ob-back-btn{width:100%;padding:0.7rem;background:none;border:0.5px solid var(--border2);border-radius:3px;font-family:'DM Sans',sans-serif;font-size:0.78rem;color:var(--text2);cursor: pointer;transition:all 0.2s;margin-bottom:0.5rem;}
+.ob-back-btn:hover{border-color:var(--border);color:var(--text);}
+
+/* ════════════════════════════════
+   PANEL 3: GELİŞTİRİCİ API PORTALI
+════════════════════════════════ */
+.api-layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 48px);}
+.api-sidebar{background:var(--bg2);border-right:0.5px solid var(--border2);padding:1.5rem 0;position:sticky;top:48px;height:calc(100vh - 48px);overflow-y:auto;}
+.api-sidebar::-webkit-scrollbar{width:3px;}
+.api-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.api-sl{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);padding:0.8rem 1rem 0.4rem;display:block;}
+.api-si{display:flex;align-items:center;gap:0.5rem;padding:0.4rem 1rem;font-size:0.78rem;color:var(--text2);cursor: pointer;transition:all 0.15s;border-left:2px solid transparent;}
+.api-si:hover{color:var(--text);background:var(--bg3);}
+.api-si.active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.05);}
+.api-si-method{font-size:0.56rem;text-transform:uppercase;letter-spacing:0.08em;padding:1px 4px;border-radius:2px;font-weight:700;flex-shrink:0;}
+.method-get{background:rgba(76,175,125,0.15);color:var(--success);}
+.method-post{background:rgba(74,158,202,0.15);color:var(--info);}
+.method-put{background:rgba(232,162,58,0.15);color:var(--warn);}
+.method-del{background:rgba(224,85,85,0.15);color:var(--error);}
+.api-divider{height:0.5px;background:var(--border2);margin:0.6rem 1rem;}
+
+/* API CONTENT */
+.api-content{padding:2rem 2.5rem;display:flex;flex-direction:column;gap:2rem;}
+.api-hero{padding:2rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;position:relative;overflow:hidden;}
+.api-hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;}
+.api-hero-title{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:0.4rem;position:relative;}
+.api-hero-sub{font-size:0.82rem;color:var(--text2);margin-bottom:1.2rem;position:relative;}
+.api-key-wrap{display:flex;gap:0.5rem;align-items:center;position:relative;}
+.api-key-field{flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:3px;padding:0.55rem 0.9rem;font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--gold);outline:none;cursor: pointer;}
+.api-key-copy{padding:0.5rem 1rem;background:var(--gold);border:none;border-radius:3px;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--bg);cursor: pointer;transition:all 0.2s;}
+.api-key-copy:hover{background:var(--gold-light);}
+.api-key-regen{padding:0.5rem 0.8rem;background:none;border:0.5px solid var(--border2);border-radius:3px;font-family:'DM Sans',sans-serif;font-size:0.72rem;color:var(--text2);cursor: pointer;transition:all 0.2s;}
+.api-key-regen:hover{border-color:var(--border);color:var(--text);}
+
+/* STATS ROW */
+.api-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;}
+.api-stat{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.8rem 1rem;}
+.as-val{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;color:var(--text);line-height:1;}
+.as-val span{color:var(--gold);}
+.as-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-top:0.3rem;}
+
+/* ENDPOINT SECTION */
+.endpoint-section{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;overflow:hidden;}
+.es-header{padding:1rem 1.4rem;border-bottom:0.5px solid var(--border2);display:flex;align-items:center;gap:0.8rem;}
+.es-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);}
+.endpoint-list{display:flex;flex-direction:column;}
+.endpoint-item{border-bottom:0.5px solid var(--border2);overflow:hidden;}
+.endpoint-item:last-child{border-bottom:none;}
+.ei-header{display:flex;align-items:center;gap:0.8rem;padding:0.85rem 1.4rem;cursor: pointer;transition:background 0.15s;}
+.ei-header:hover{background:var(--bg3);}
+.ei-method{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;padding:3px 7px;border-radius:2px;font-weight:700;flex-shrink:0;}
+.ei-path{font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text);flex:1;}
+.ei-desc{font-size:0.7rem;color:var(--text3);}
+.ei-arrow{font-size:0.7rem;color:var(--text3);transition:transform 0.2s;}
+.ei-arrow.open{transform:rotate(90deg);color:var(--gold);}
+.ei-body{display:none;padding:1.2rem 1.4rem;background:var(--bg3);border-top:0.5px solid var(--border2);}
+.ei-body.open{display:block;}
+.ei-body-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.5rem;}
+.code-block{background:var(--bg);border:0.5px solid var(--border2);border-radius:3px;padding:1rem;font-family:'JetBrains Mono',monospace;font-size:0.72rem;overflow-x:auto;position:relative;}
+.code-block pre{color:var(--text2);line-height:1.6;margin:0;}
+.code-block .kw{color:var(--gold);}
+.code-block .str{color:var(--success);}
+.code-block .num{color:var(--info);}
+.code-block .cm{color:var(--text3);}
+.code-copy{position:absolute;top:0.5rem;right:0.5rem;padding:2px 7px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);cursor: pointer;transition:all 0.15s;}
+.code-copy:hover{border-color:var(--border);color:var(--gold);}
+.param-table{width:100%;border-collapse:collapse;margin-bottom:0.8rem;}
+.param-table th{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);text-align:left;padding:0 0 0.4rem;border-bottom:0.5px solid var(--border2);}
+.param-table td{font-size:0.72rem;padding:0.4rem 0;border-bottom:0.5px solid var(--border2);color:var(--text2);vertical-align:top;}
+.param-table td:first-child{font-family:'JetBrains Mono',monospace;color:var(--gold);width:35%;}
+.param-table td:nth-child(2){color:var(--info);font-family:'JetBrains Mono',monospace;font-size:0.65rem;width:20%;}
+.param-table tr:last-child td{border-bottom:none;}
+.response-tabs{display:flex;gap:2px;margin-bottom:0.6rem;}
+.rt-btn{padding:3px 10px;font-size:0.65rem;border-radius:2px;background:var(--bg4);border:0.5px solid var(--border2);color:var(--text3);cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.rt-btn.active{background:var(--bg5);color:var(--gold);border-color:var(--border);}
+
+/* SDK CARDS */
+.sdk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;}
+.sdk-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:1rem;cursor: pointer;transition:all 0.2s;}
+.sdk-card:hover{border-color:var(--border);transform:translateY(-2px);}
+.sdk-icon{font-size:1.6rem;margin-bottom:0.6rem;}
+.sdk-name{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:0.2rem;}
+.sdk-version{font-size:0.62rem;color:var(--text3);}
+.sdk-install{font-family:'JetBrains Mono',monospace;font-size:0.65rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;padding:0.4rem 0.6rem;margin-top:0.6rem;color:var(--success);}
+
+/* TOAST */
+.ts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;width:300px;}
+.tt{display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:3px;border:0.5px solid;pointer-events:all;animation:tIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;}
+.tt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.tt-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);}
+.tt-ok::before{background:var(--success);}
+.tt-info{background:rgba(74,158,202,0.1);border-color:rgba(74,158,202,0.25);}
+.tt-info::before{background:var(--info);}
+.tt-warn{background:rgba(232,162,58,0.1);border-color:rgba(232,162,58,0.25);}
+.tt-warn::before{background:var(--warn);}
+.tt-b{flex:1;}
+.tt-t{font-size:0.73rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.tt-m{font-size:0.66rem;color:var(--text2);line-height:1.4;}
+.tt-c{background:none;border:none;color:var(--text3);font-size:0.72rem;cursor: pointer;padding:0;}
+@keyframes tIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tlogo">OMNI<span>IDEA</span></div>
+  <div class="tnav">
+    <button class="tnav-item active" id="nav-plans" onclick="switchPanel('plans',this)">Planlar & Fiyatlandırma</button>
+    <button class="tnav-item" id="nav-onboard" onclick="switchPanel('onboard',this)">Onboarding</button>
+    <button class="tnav-item" id="nav-api" onclick="switchPanel('api',this)">Geliştirici API</button>
+  </div>
+  <div class="tr">
+    <button onclick="window.location.href=\'5-omnidea-dashboard-entegre.html\'" class="tb tb-g">← Dashboard</button>
+    <button class="tb tb-gold" onclick="switchPanel('onboard',document.getElementById('nav-onboard'))">Başla ✦</button>
+    <div class="av">HB</div>
+  </div>
+</div>
+
+<!-- ══ PANEL 1: PLANS ══ -->
+<div class="panel active" id="panel-plans">
+
+  <div class="plan-hero">
+    <div class="ph-grid"></div>
+    <div class="ph-glow"></div>
+    <div class="ph-tag">✦ Şeffaf Fiyatlandırma</div>
+    <h1 class="ph-title">Her Vizyon İçin<br><em>Doğru Plan</em></h1>
+    <p class="ph-sub">Tasarımcıdan kurumsal firmaya kadar her ölçeğe uygun. Gizli ücret yok, taahhüt yok.</p>
+    <div class="billing-toggle">
+      <button class="bt-btn active" onclick="setBilling('monthly',this)">Aylık</button>
+      <button class="bt-btn" onclick="setBilling('annual',this)">Yıllık <span class="bt-save">%20 Kazanç</span></button>
+    </div>
+  </div>
+
+  <div class="plans-wrap">
+    <div class="plans-grid">
+
+      <!-- FREE -->
+      <div class="plan-card">
+        <div class="plan-name">Ücretsiz</div>
+        <div class="plan-price"><sup>$</sup>0<sub>/ay</sub></div>
+        <div class="plan-period">Sonsuza kadar ücretsiz</div>
+        <div class="plan-desc">Platformu keşfetmek için ideal başlangıç noktası.</div>
+        <div class="plan-features">
+          <div class="pf-item"><span class="pf-check">✓</span>3 aktif proje</div>
+          <div class="pf-item"><span class="pf-check">✓</span>50 AI kredisi/ay</div>
+          <div class="pf-item"><span class="pf-check">✓</span>STL & DXF çıktısı</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Pazar yerine erişim</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Temel Smart Constraints</div>
+          <div class="pf-item disabled"><span class="pf-cross">✕</span>Öncelikli destek</div>
+          <div class="pf-item disabled"><span class="pf-cross">✕</span>API erişimi</div>
+          <div class="pf-item disabled"><span class="pf-cross">✕</span>White-label çıktı</div>
+        </div>
+        <button class="plan-btn pb-ghost" onclick="toast('info','Ücretsiz Plan','Zaten ücretsiz plan kullanıyorsunuz.')">Mevcut Plan</button>
+      </div>
+
+      <!-- PRO -->
+      <div class="plan-card featured">
+        <span class="featured-label">En Popüler</span>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" id="pro-price"><sup>$</sup>49<sub>/ay</sub></div>
+        <div class="plan-period" id="pro-period">Aylık faturalandırma</div>
+        <div class="plan-desc">Ciddi tasarımcılar için tam güç. Sınırsız üretim akışı.</div>
+        <div class="plan-features">
+          <div class="pf-item"><span class="pf-check">✓</span>Sınırsız aktif proje</div>
+          <div class="pf-item"><span class="pf-check">✓</span>500 AI kredisi/ay</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Tüm dosya formatları</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Gelişmiş Smart Constraints</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Öncelikli üretici eşleştirme</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Versiyon geçmişi (sınırsız)</div>
+          <div class="pf-item"><span class="pf-check">✓</span>API erişimi (10K istek/ay)</div>
+          <div class="pf-item disabled"><span class="pf-cross">✕</span>White-label çıktı</div>
+        </div>
+        <button class="plan-btn pb-gold" onclick="selectPlan('pro')">Pro'ya Geç ✦</button>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div class="plan-card">
+        <div class="plan-name">Kurumsal</div>
+        <div class="plan-price"><sup>$</sup>199<sub>/ay</sub></div>
+        <div class="plan-period" id="ent-period">Aylık faturalandırma · Özel fiyat</div>
+        <div class="plan-desc">Ajanslar, fabrikalar ve kurumsal tasarım ekipleri için.</div>
+        <div class="plan-features">
+          <div class="pf-item"><span class="pf-check">✓</span>Her şey dahil (Pro+)</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Sınırsız AI kredisi</div>
+          <div class="pf-item"><span class="pf-check">✓</span>White-label çıktılar</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Özel sektör kanalları</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Sınırsız API erişimi</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Hesap yöneticisi</div>
+          <div class="pf-item"><span class="pf-check">✓</span>SLA garantisi (%99.9)</div>
+          <div class="pf-item"><span class="pf-check">✓</span>Özel entegrasyon desteği</div>
+        </div>
+        <button class="plan-btn pb-outline" onclick="toast('info','Kurumsal','Satış ekibimiz sizi arayacak.')">Demo Talep Et →</button>
+      </div>
+
+    </div>
+
+    <!-- COMPARISON TABLE -->
+    <div class="comparison-wrap">
+      <div class="comp-header">
+        <div class="comp-col-title">Özellik Karşılaştırması</div>
+        <div class="comp-col-title">Ücretsiz</div>
+        <div class="comp-col-title">Pro</div>
+        <div class="comp-col-title">Kurumsal</div>
+      </div>
+      <div class="comp-section-header">Tasarım Stüdyosu</div>
+      <div class="comp-row"><div class="comp-cell">Aktif Proje</div><div class="comp-cell cc-val">3</div><div class="comp-cell cc-val">∞</div><div class="comp-cell cc-val">∞</div></div>
+      <div class="comp-row"><div class="comp-cell">AI Kredisi / Ay</div><div class="comp-cell cc-val">50</div><div class="comp-cell cc-val">500</div><div class="comp-cell cc-val">∞</div></div>
+      <div class="comp-row"><div class="comp-cell">Nano Banana AI Model</div><div class="comp-cell cc-val">v1</div><div class="comp-cell cc-val">v2.1</div><div class="comp-cell cc-val">v2.1+</div></div>
+      <div class="comp-row"><div class="comp-cell">3D Render Kalitesi</div><div class="comp-cell">720p</div><div class="comp-cell cc-val">4K</div><div class="comp-cell cc-val">8K</div></div>
+      <div class="comp-row"><div class="comp-cell">Dosya Formatları</div><div class="comp-cell">STL, DXF</div><div class="comp-cell cc-val">Tümü</div><div class="comp-cell cc-val">Tümü</div></div>
+      <div class="comp-section-header">Smart Constraints</div>
+      <div class="comp-row"><div class="comp-cell">Temel Kurallar</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Sektöre Özel Kurallar</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Otomatik Düzeltme</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Özel Kural Seti</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-section-header">Pazar Yeri</div>
+      <div class="comp-row"><div class="comp-cell">Pazar Yeri Erişimi</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Öncelikli Eşleştirme</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Özel Üretici Kanalı</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-section-header">Teknik & Entegrasyon</div>
+      <div class="comp-row"><div class="comp-cell">API Erişimi</div><div class="comp-cell cc-no">✕</div><div class="comp-cell">10K/ay</div><div class="comp-cell cc-val">∞</div></div>
+      <div class="comp-row"><div class="comp-cell">White-label Çıktı</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-row"><div class="comp-cell">Webhook Desteği</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-yes">✓</div><div class="comp-cell cc-yes">✓</div></div>
+      <div class="comp-section-header">Destek</div>
+      <div class="comp-row"><div class="comp-cell">Destek Kanalı</div><div class="comp-cell">E-posta</div><div class="comp-cell">Öncelikli</div><div class="comp-cell cc-val">7/24 + AM</div></div>
+      <div class="comp-row"><div class="comp-cell">SLA Garantisi</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-no">✕</div><div class="comp-cell cc-val">%99.9</div></div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="faq-wrap">
+      <div class="faq-title">Sık Sorulan Sorular</div>
+      <div id="faqList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL 2: ONBOARDING ══ -->
+<div class="panel" id="panel-onboard">
+  <div class="onboard-wrap">
+
+    <!-- PROGRESS -->
+    <div class="ob-progress" id="obProgress"></div>
+
+    <!-- STEP 1: ROLE -->
+    <div class="ob-step-content active" id="ob-step-1">
+      <div class="ob-step-title">Seni Tanıyalım</div>
+      <div class="ob-step-sub">OMNIDEA'ya nasıl katılıyorsun? Her iki rol için de farklı bir deneyim hazırladık.</div>
+      <div class="ob-role-grid">
+        <div class="ob-role-card" id="role-designer" onclick="selectRole('designer')">
+          <div class="ob-role-icon">✏️</div>
+          <div class="ob-role-name">Tasarımcı</div>
+          <div class="ob-role-desc">Ürün fikrimden üretilebilir tasarıma, oradan da gerçek bir ürüne gitmek istiyorum.</div>
+          <div class="ob-role-features">
+            <div class="ob-rf">AI ile tasarım oluştur</div>
+            <div class="ob-rf">Üreticilerden teklif al</div>
+            <div class="ob-rf">Üretim sürecini takip et</div>
+          </div>
+        </div>
+        <div class="ob-role-card" id="role-producer" onclick="selectRole('producer')">
+          <div class="ob-role-icon">🏭</div>
+          <div class="ob-role-name">Üretici</div>
+          <div class="ob-role-desc">Hazır tasarımları üretiyorum. Yeni müşteriler bulmak ve iş almak istiyorum.</div>
+          <div class="ob-role-features">
+            <div class="ob-rf">Tasarımlara teklif ver</div>
+            <div class="ob-rf">Üretim portföyü oluştur</div>
+            <div class="ob-rf">Güvenli escrow ile öde</div>
+          </div>
+        </div>
+      </div>
+      <button class="ob-next-btn" onclick="obNext(1)">Devam Et →</button>
+    </div>
+
+    <!-- STEP 2: SECTOR -->
+    <div class="ob-step-content" id="ob-step-2">
+      <div class="ob-step-title">Hangi Sektörler?</div>
+      <div class="ob-step-sub">Birden fazla seçebilirsin. Pazar yeri ve AI önerilerin buna göre kişiselleştirilir.</div>
+      <div class="ob-sector-grid">
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">🪑</div><span class="ob-sector-name">Mobilya</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">💎</div><span class="ob-sector-name">Takı</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">👟</div><span class="ob-sector-name">Ayakkabı</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">⚙️</div><span class="ob-sector-name">Endüstriyel</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">🚗</div><span class="ob-sector-name">Oto</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">👗</div><span class="ob-sector-name">Kıyafet</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">🔧</div><span class="ob-sector-name">İş Aletleri</span></div>
+        <div class="ob-sector-btn" onclick="toggleSector(this)"><div class="ob-sector-ico">🎨</div><span class="ob-sector-name">Grafik</span></div>
+      </div>
+      <button class="ob-back-btn" onclick="obBack(2)">← Geri</button>
+      <button class="ob-next-btn" onclick="obNext(2)">Devam Et →</button>
+    </div>
+
+    <!-- STEP 3: PROFILE -->
+    <div class="ob-step-content" id="ob-step-3">
+      <div class="ob-step-title">Profilini Oluştur</div>
+      <div class="ob-step-sub">Hızlıca tamamla. İstediğin zaman değiştirebilirsin.</div>
+      <div class="ob-form">
+        <div class="ob-row">
+          <div class="ob-field"><label>Ad</label><input class="ob-input" placeholder="Adın"></div>
+          <div class="ob-field"><label>Soyad</label><input class="ob-input" placeholder="Soyadın"></div>
+        </div>
+        <div class="ob-field"><label>Firma / Atölye Adı (opsiyonel)</label><input class="ob-input" placeholder="Zenith Furniture & Interior"></div>
+        <div class="ob-row">
+          <div class="ob-field"><label>Ülke</label>
+            <select class="ob-select">
+              <option>Özbekistan</option><option>Türkiye</option><option>Almanya</option>
+              <option>Rusya</option><option>S. Arabistan</option><option>Çin</option><option>Diğer</option>
+            </select>
+          </div>
+          <div class="ob-field"><label>Şehir</label><input class="ob-input" placeholder="Taşkent"></div>
+        </div>
+        <div class="ob-field"><label>Kısa Biyografi</label><input class="ob-input" placeholder="Mobilya tasarımcısı ve üreticisi..."></div>
+      </div>
+      <button class="ob-back-btn" onclick="obBack(3)">← Geri</button>
+      <button class="ob-next-btn" onclick="obNext(3)">Devam Et →</button>
+    </div>
+
+    <!-- STEP 4: PLAN -->
+    <div class="ob-step-content" id="ob-step-4">
+      <div class="ob-step-title">Plan Seç</div>
+      <div class="ob-step-sub">Ücretsiz ile başla, büyüdükçe yükselt. Taahhüt yok.</div>
+      <div style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:2rem;">
+        <div class="ob-role-card" id="plan-free" onclick="selectPlanOb('free')" style="padding:1rem 1.2rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div><div style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text);">Ücretsiz</div><div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">3 proje · 50 AI kredi · Temel özellikler</div></div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text);">$0</div>
+          </div>
+        </div>
+        <div class="ob-role-card selected" id="plan-pro" onclick="selectPlanOb('pro')" style="padding:1rem 1.2rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div><div style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;color:var(--text);">Pro <span style="font-size:0.6rem;background:var(--gold);color:var(--bg);padding:2px 6px;border-radius:2px;margin-left:4px;">Önerilen</span></div><div style="font-size:0.72rem;color:var(--text3);margin-top:2px;">Sınırsız proje · 500 AI kredi · API erişimi</div></div>
+            <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--gold);">$49<span style="font-size:0.7rem;color:var(--text3);font-weight:400;">/ay</span></div>
+          </div>
+        </div>
+      </div>
+      <button class="ob-back-btn" onclick="obBack(4)">← Geri</button>
+      <button class="ob-next-btn" onclick="obNext(4)">Tamamla & Başla ✦</button>
+    </div>
+
+    <!-- STEP 5: SUCCESS -->
+    <div class="ob-step-content" id="ob-step-5">
+      <div class="ob-success">
+        <div class="ob-success-ring">✦</div>
+        <div class="ob-step-title" style="text-align:center;">Hoş Geldin!</div>
+        <div class="ob-step-sub" style="text-align:center;">Hesabın hazır. OMNIDEA'da ilk tasarımını yapmaya başla.</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.5rem;">
+          <button class="ob-next-btn" onclick="toast('ok','Stüdyoya Git','Tasarım stüdyosu açılıyor...')">◈ Tasarım Stüdyosuna Git</button>
+          <button class="ob-back-btn" style="margin-bottom:0;" onclick="toast('info','Pazar Yeri','Pazar yeri açılıyor...')">⬡ Pazar Yerini Keşfet</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ PANEL 3: API ══ -->
+<div class="panel" id="panel-api">
+  <div class="api-layout">
+
+    <!-- API SIDEBAR -->
+    <div class="api-sidebar">
+      <span class="api-sl">Başlangıç</span>
+      <div class="api-si active" onclick="apiNav(this)">Giriş</div>
+      <div class="api-si" onclick="apiNav(this)">Kimlik Doğrulama</div>
+      <div class="api-si" onclick="apiNav(this)">Hız Limitleri</div>
+      <div class="api-si" onclick="apiNav(this)">Hata Kodları</div>
+      <div class="api-divider"></div>
+      <span class="api-sl">Projeler</span>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-get">GET</span> Projeleri Listele</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-post">POST</span> Proje Oluştur</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-get">GET</span> Proje Detayı</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-put">PUT</span> Proje Güncelle</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-del">DEL</span> Proje Sil</div>
+      <div class="api-divider"></div>
+      <span class="api-sl">Tasarım & AI</span>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-post">POST</span> AI Tasarım Üret</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-get">GET</span> Çıktıları Al</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-post">POST</span> Constraints Çalıştır</div>
+      <div class="api-divider"></div>
+      <span class="api-sl">Pazar Yeri</span>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-get">GET</span> Teklifleri Listele</div>
+      <div class="api-si" onclick="apiNav(this)"><span class="api-si-method method-post">POST</span> Teklif Kabul Et</div>
+      <div class="api-divider"></div>
+      <span class="api-sl">Webhooks</span>
+      <div class="api-si" onclick="apiNav(this)">Webhook Yönetimi</div>
+      <div class="api-si" onclick="apiNav(this)">Olay Tipleri</div>
+    </div>
+
+    <!-- API CONTENT -->
+    <div class="api-content">
+
+      <!-- HERO -->
+      <div class="api-hero">
+        <div class="api-hero-grid"></div>
+        <div class="api-hero-title">OMNIDEA REST API</div>
+        <div class="api-hero-sub">Tasarım, üretim ve pazaryeri akışlarını uygulamanıza entegre edin. Base URL: <code style="font-family:'JetBrains Mono',monospace;color:var(--gold);font-size:0.78rem;">https://api.omnidea.io/v1</code></div>
+        <div class="api-key-wrap">
+          <input class="api-key-field" value="omni_live_sk_••••••••••••••••••••••••HB2025" readonly>
+          <button class="api-key-copy" onclick="copyKey()">Kopyala</button>
+          <button class="api-key-regen" onclick="toast('warn','Yeni Anahtar','API anahtarı yenilendi. Eski anahtar devre dışı bırakıldı.')">↻ Yenile</button>
+        </div>
+      </div>
+
+      <!-- API STATS -->
+      <div class="api-stats">
+        <div class="api-stat"><div class="as-val">8.<span>241</span></div><div class="as-label">Bu Ay İstek</div></div>
+        <div class="api-stat"><div class="as-val">10<span>K</span></div><div class="as-label">Aylık Limit (Pro)</div></div>
+        <div class="api-stat"><div class="as-val">142<span>ms</span></div><div class="as-label">Ort. Yanıt Süresi</div></div>
+        <div class="api-stat"><div class="as-val">99.<span>9%</span></div><div class="as-label">Uptime (30G)</div></div>
+      </div>
+
+      <!-- ENDPOINTS -->
+      <div class="endpoint-section">
+        <div class="es-header">
+          <span class="api-si-method method-post">POST</span>
+          <span class="es-title">AI Tasarım Üret</span>
+        </div>
+        <div class="endpoint-list" id="endpointList"></div>
+      </div>
+
+      <!-- SDK CARDS -->
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:0.8rem;">SDK & Kütüphaneler</div>
+        <div class="sdk-grid" id="sdkGrid"></div>
+      </div>
+
+      <!-- QUICK START -->
+      <div class="endpoint-section">
+        <div class="es-header"><span class="es-title">Hızlı Başlangıç</span></div>
+        <div style="padding:1.2rem 1.4rem;">
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.6rem;">1. API Anahtarınızı Alın</div>
+          <div class="code-block" style="margin-bottom:1rem;">
+            <button class="code-copy" onclick="toast('ok','Kopyalandı','Kod panoya kopyalandı.')">Kopyala</button>
+            <pre><span class="cm"># npm veya pip ile kurun</span>
+npm install @omnidea/sdk
+<span class="cm"># veya</span>
+pip install omnidea-python</pre>
+          </div>
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.6rem;">2. İlk Tasarımı Üretin</div>
+          <div class="code-block" style="margin-bottom:1rem;">
+            <button class="code-copy" onclick="toast('ok','Kopyalandı','Kod panoya kopyalandı.')">Kopyala</button>
+            <pre><span class="kw">import</span> { OmnideaClient } <span class="kw">from</span> <span class="str">'@omnidea/sdk'</span>
+
+<span class="kw">const</span> client = <span class="kw">new</span> OmnideaClient({
+  apiKey: <span class="str">'omni_live_sk_...'</span>
+})
+
+<span class="kw">const</span> design = <span class="kw">await</span> client.ai.generate({
+  prompt: <span class="str">'Modern berjer koltuk, velvet kumaş, altın bacaklar'</span>,
+  sector: <span class="str">'furniture'</span>,
+  outputs: [<span class="str">'stl'</span>, <span class="str">'dxf'</span>, <span class="str">'pdf'</span>]
+})
+
+console.log(design.score) <span class="cm">// Üretilebilirlik skoru: 88</span>
+console.log(design.files) <span class="cm">// { stl: '...', dxf: '...', pdf: '...' }</span></pre>
+          </div>
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.6rem;">3. Markete Gönderin</div>
+          <div class="code-block">
+            <button class="code-copy" onclick="toast('ok','Kopyalandı','Kod panoya kopyalandı.')">Kopyala</button>
+            <pre><span class="kw">const</span> listing = <span class="kw">await</span> client.market.publish({
+  projectId: design.id,
+  budget: { min: <span class="num">800</span>, max: <span class="num">1500</span> },
+  deadline: <span class="str">'2025-04-15'</span>,
+  quantity: <span class="num">1</span>
+})
+
+<span class="cm">// Webhook ile teklif bildirimlerini alın</span>
+client.webhooks.on(<span class="str">'bid.received'</span>, (bid) => {
+  console.log(<span class="str">`Yeni teklif: $${bid.amount} - ${bid.producer}`</span>)
+})</pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="ts" id="ts"></div>
+
+<script>
+// CURSOR
+const cur=document.getElementById('cursor'),crn=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx-3.5+'px';cur.style.top=my-3.5+'px';});
+(function aR(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;crn.style.left=rx-14+'px';crn.style.top=ry-14+'px';requestAnimationFrame(aR);})();
+document.addEventListener('mouseover',e=>{if(e.target.closest('button,a,.plan-card,.ob-role-card,.ob-sector-btn,.sdk-card,.endpoint-item,.api-si,.faq-q')){{cur.style.transform='scale(1.8)';crn.style.transform='scale(1.3)';crn.style.borderColor='rgba(201,168,76,0.6)';}}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('button,a,.plan-card,.ob-role-card,.ob-sector-btn,.sdk-card,.endpoint-item,.api-si,.faq-q')){{cur.style.transform='scale(1)';crn.style.transform='scale(1)';crn.style.borderColor='rgba(201,168,76,0.3)';}}});
+
+// PANEL SWITCH
+function switchPanel(p,btn){
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tnav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('panel-'+p).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// BILLING TOGGLE
+let billingAnnual=false;
+function setBilling(type,btn){
+  billingAnnual=type==='annual';
+  document.querySelectorAll('.bt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pro-price').innerHTML=billingAnnual?'<sup>$</sup>39<sub>/ay</sub>':'<sup>$</sup>49<sub>/ay</sub>';
+  document.getElementById('pro-period').textContent=billingAnnual?'Yıllık faturalandırma ($468/yıl)':'Aylık faturalandırma';
+  document.getElementById('ent-period').textContent=billingAnnual?'Yıllık faturalandırma ($1.908/yıl)':'Aylık faturalandırma · Özel fiyat';
+  toast('info','Fiyatlar Güncellendi',billingAnnual?'Yıllık planda %20 tasarruf!':'Aylık fiyatlandırma gösteriliyor.');
+}
+function selectPlan(p){
+  toast('ok','Plan Seçildi','Pro plana geçiş başlatılıyor. Ödeme sayfasına yönlendiriliyorsunuz.');
+}
+function selectPlanOb(p){
+  document.getElementById('plan-free').classList.remove('selected');
+  document.getElementById('plan-pro').classList.remove('selected');
+  document.getElementById('plan-'+p).classList.add('selected');
+}
+
+// FAQ
+const FAQS=[
+  {q:'Ücretsiz planda kredi kartı bilgisi gerekiyor mu?',a:'Hayır. Ücretsiz plan için herhangi bir ödeme bilgisi talep edilmez. Dilediğiniz zaman Pro plana geçebilirsiniz.'},
+  {q:'AI kredileri her ay sıfırlanıyor mu?',a:'Evet, her fatura döneminde kredi bakiyeniz yenilenir. Kullanılmayan krediler bir sonraki aya devretmez.'},
+  {q:'Aylık plandan yıllık plana geçebilir miyim?',a:'Evet, istediğiniz zaman plan değiştirebilirsiniz. Yıllık plana geçişte mevcut dönemin kalan günleri orantılı olarak iade edilir.'},
+  {q:'Üreticiler hangi planı kullanmalı?',a:'Üreticiler için ayrı bir fiyatlandırma uygulanmaz. Üreticiler platforma ücretsiz kaydolabilir ve teklif verebilir. Komisyon yalnızca tamamlanan işlemler üzerinden alınır.'},
+  {q:'Platform komisyon oranı nedir?',a:'Standart işlemler için %5 komisyon alınır. Pro plan kullanıcıları %3.5, Kurumsal plan kullanıcıları %2 indirimli oran avantajından yararlanır.'},
+  {q:'Aboneliği iptal edersem projelerim ne olur?',a:'Abonelik iptali sonrası projeleriniz silinmez. Ücretsiz plan limitlerini aşan aktif projeleriniz arşivlenir. Yeniden abone olduğunuzda tüm projelerinize erişiminiz geri gelir.'},
+];
+function renderFAQ(){
+  const l=document.getElementById('faqList');if(!l)return;
+  FAQS.forEach((f,i)=>{
+    const d=document.createElement('div');d.className='faq-item';
+    d.innerHTML=`<button class="faq-q" onclick="toggleFAQ(${i},this)">${f.q}<span class="faq-icon" id="faq-icon-${i}">+</span></button><div class="faq-a" id="faq-a-${i}">${f.a}</div>`;
+    l.appendChild(d);
+  });
+}
+function toggleFAQ(i,btn){
+  const a=document.getElementById('faq-a-'+i);const ico=document.getElementById('faq-icon-'+i);
+  const open=a.classList.contains('open');
+  document.querySelectorAll('.faq-a').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.faq-icon').forEach(el=>el.classList.remove('open'));
+  if(!open){a.classList.add('open');ico.classList.add('open');}
+}
+
+// ONBOARDING
+let obCurrentStep=1;
+let selectedRole=null;
+function renderProgress(){
+  const steps=['Rol','Sektör','Profil','Plan','Hazır'];
+  const p=document.getElementById('obProgress');p.innerHTML='';
+  steps.forEach((s,i)=>{
+    if(i>0){const line=document.createElement('div');line.className='ob-line'+(i<obCurrentStep?' done':'');p.appendChild(line);}
+    const wrap=document.createElement('div');wrap.className='ob-step';
+    wrap.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;"><div class="ob-dot ${i+1<obCurrentStep?'done':i+1===obCurrentStep?'active':''}">${i+1<obCurrentStep?'✓':i+1}</div><div class="ob-step-label">${s}</div></div>`;
+    p.appendChild(wrap);
+  });
+}
+function obNext(step){
+  if(step===1&&!selectedRole){toast('warn','Seçim Gerekli','Lütfen bir rol seçin.');return;}
+  obCurrentStep=step+1;
+  document.querySelectorAll('.ob-step-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('ob-step-'+obCurrentStep).classList.add('active');
+  renderProgress();
+  if(obCurrentStep===5){toast('ok','Hoş Geldin!','Hesabın başarıyla oluşturuldu.');}
+}
+function obBack(step){
+  obCurrentStep=step-1;
+  document.querySelectorAll('.ob-step-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById('ob-step-'+obCurrentStep).classList.add('active');
+  renderProgress();
+}
+function selectRole(r){
+  selectedRole=r;
+  document.getElementById('role-designer').classList.remove('selected');
+  document.getElementById('role-producer').classList.remove('selected');
+  document.getElementById('role-'+r).classList.add('selected');
+}
+function toggleSector(el){el.classList.toggle('selected');}
+
+// API NAV
+function apiNav(el){document.querySelectorAll('.api-si').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+
+// ENDPOINTS
+const ENDPOINTS=[
+  {method:'POST',path:'/ai/generate',desc:'Prompt\'tan 3D tasarım üret',params:[{name:'prompt',type:'string',desc:'Tasarım açıklaması'},{name:'sector',type:'string',desc:'furniture, jewelry, footwear...'},{name:'outputs',type:'array',desc:'["stl","dxf","pdf","obj"]'},{name:'constraints',type:'boolean',desc:'Smart Constraints çalıştır'}],
+  req:`{
+  <span class="str">"prompt"</span>: <span class="str">"Modern berjer koltuk, velvet kumaş"</span>,
+  <span class="str">"sector"</span>: <span class="str">"furniture"</span>,
+  <span class="str">"outputs"</span>: [<span class="str">"stl"</span>, <span class="str">"dxf"</span>, <span class="str">"pdf"</span>],
+  <span class="str">"constraints"</span>: <span class="kw">true</span>
+}`,
+  res:`{
+  <span class="str">"id"</span>: <span class="str">"proj_8821"</span>,
+  <span class="str">"status"</span>: <span class="str">"completed"</span>,
+  <span class="str">"score"</span>: <span class="num">88</span>,
+  <span class="str">"files"</span>: {
+    <span class="str">"stl"</span>: <span class="str">"https://cdn.omnidea.io/files/..."</span>,
+    <span class="str">"dxf"</span>: <span class="str">"https://cdn.omnidea.io/files/..."</span>,
+    <span class="str">"pdf"</span>: <span class="str">"https://cdn.omnidea.io/files/..."</span>
+  },
+  <span class="str">"constraints"</span>: [
+    { <span class="str">"type"</span>: <span class="str">"warning"</span>, <span class="str">"message"</span>: <span class="str">"Montaj noktası yetersiz"</span> }
+  ],
+  <span class="str">"processing_ms"</span>: <span class="num">3240</span>
+}`},
+  {method:'GET',path:'/projects',desc:'Proje listesini getir',params:[{name:'page',type:'integer',desc:'Sayfa numarası (varsayılan: 1)'},{name:'limit',type:'integer',desc:'Sonuç sayısı (maks: 100)'},{name:'sector',type:'string',desc:'Sektöre göre filtrele'}],
+  req:`GET /v1/projects?page=<span class="num">1</span>&limit=<span class="num">10</span>&sector=<span class="str">furniture</span>`,
+  res:`{
+  <span class="str">"data"</span>: [
+    {
+      <span class="str">"id"</span>: <span class="str">"proj_8821"</span>,
+      <span class="str">"name"</span>: <span class="str">"Berjer Koltuk v3"</span>,
+      <span class="str">"sector"</span>: <span class="str">"furniture"</span>,
+      <span class="str">"score"</span>: <span class="num">88</span>,
+      <span class="str">"status"</span>: <span class="str">"market"</span>,
+      <span class="str">"bids_count"</span>: <span class="num">12</span>
+    }
+  ],
+  <span class="str">"total"</span>: <span class="num">7</span>,
+  <span class="str">"page"</span>: <span class="num">1</span>
+}`},
+  {method:'POST',path:'/market/bids/accept',desc:'Teklifi kabul et ve escrow başlat',params:[{name:'bid_id',type:'string',desc:'Kabul edilecek teklif ID'},{name:'payment_method',type:'string',desc:'card, bank_transfer, crypto'}],
+  req:`{
+  <span class="str">"bid_id"</span>: <span class="str">"bid_4421"</span>,
+  <span class="str">"payment_method"</span>: <span class="str">"card"</span>
+}`,
+  res:`{
+  <span class="str">"escrow_id"</span>: <span class="str">"escrow_9910"</span>,
+  <span class="str">"status"</span>: <span class="str">"locked"</span>,
+  <span class="str">"amount"</span>: <span class="num">1200</span>,
+  <span class="str">"commission"</span>: <span class="num">60</span>,
+  <span class="str">"estimated_delivery"</span>: <span class="str">"2025-04-02"</span>
+}`},
+];
+function renderEndpoints(){
+  const l=document.getElementById('endpointList');if(!l)return;l.innerHTML='';
+  ENDPOINTS.forEach((ep,i)=>{
+    const d=document.createElement('div');d.className='endpoint-item';
+    const methodCls=ep.method==='GET'?'method-get':ep.method==='POST'?'method-post':ep.method==='PUT'?'method-put':'method-del';
+    d.innerHTML=`
+      <div class="ei-header" onclick="toggleEndpoint(${i},this)">
+        <span class="ei-method ${methodCls}">${ep.method}</span>
+        <span class="ei-path">${ep.path}</span>
+        <span class="ei-desc">${ep.desc}</span>
+        <span class="ei-arrow" id="ei-arrow-${i}">▶</span>
+      </div>
+      <div class="ei-body" id="ei-body-${i}">
+        <div class="ei-body-title">Parametreler</div>
+        <table class="param-table">
+          <tr><th>Parametre</th><th>Tip</th><th>Açıklama</th></tr>
+          ${ep.params.map(p=>`<tr><td>${p.name}</td><td>${p.type}</td><td>${p.desc}</td></tr>`).join('')}
+        </table>
+        <div class="response-tabs"><button class="rt-btn active" onclick="switchResTabs(this)">İstek</button><button class="rt-btn" onclick="switchResTabs(this)">Yanıt</button></div>
+        <div class="code-block" id="code-req-${i}"><button class="code-copy" onclick="toast('ok','Kopyalandı','')">Kopyala</button><pre>${ep.req}</pre></div>
+        <div class="code-block" id="code-res-${i}" style="display:none;"><button class="code-copy" onclick="toast('ok','Kopyalandı','')">Kopyala</button><pre>${ep.res}</pre></div>
+      </div>`;
+    l.appendChild(d);
+  });
+}
+function toggleEndpoint(i,header){
+  const body=document.getElementById('ei-body-'+i);const arrow=document.getElementById('ei-arrow-'+i);
+  const open=body.classList.contains('open');
+  document.querySelectorAll('.ei-body').forEach(b=>b.classList.remove('open'));
+  document.querySelectorAll('.ei-arrow').forEach(a=>a.classList.remove('open'));
+  if(!open){body.classList.add('open');arrow.classList.add('open');}
+}
+function switchResTabs(btn){
+  const tabs=btn.parentElement.querySelectorAll('.rt-btn');const idx=Array.from(tabs).indexOf(btn);
+  tabs.forEach(t=>t.classList.remove('active'));btn.classList.add('active');
+  const item=btn.closest('.ei-body');
+  const req=item.querySelector('[id^="code-req"]');const res=item.querySelector('[id^="code-res"]');
+  if(idx===0){req.style.display='block';res.style.display='none';}
+  else{req.style.display='none';res.style.display='block';}
+}
+
+// SDK CARDS
+const SDKS=[
+  {ico:'📦',name:'JavaScript / Node.js',version:'v2.4.1',cmd:'npm install @omnidea/sdk'},
+  {ico:'🐍',name:'Python',version:'v2.3.0',cmd:'pip install omnidea-python'},
+  {ico:'☕',name:'Java',version:'v1.8.2',cmd:'mvn: io.omnidea:sdk:2.1'},
+  {ico:'🦀',name:'Rust',version:'v1.2.0',cmd:'cargo add omnidea'},
+  {ico:'💎',name:'Ruby',version:'v1.5.1',cmd:'gem install omnidea'},
+  {ico:'🐘',name:'PHP',version:'v1.9.0',cmd:'composer require omnidea/sdk'},
+];
+function renderSDKs(){
+  const g=document.getElementById('sdkGrid');if(!g)return;g.innerHTML='';
+  SDKS.forEach(s=>{
+    const d=document.createElement('div');d.className='sdk-card';
+    d.innerHTML=`<div class="sdk-icon">${s.ico}</div><div class="sdk-name">${s.name}</div><div class="sdk-version">${s.version}</div><div class="sdk-install">${s.cmd}</div>`;
+    d.onclick=()=>{
+    toast('info','SDK',s.name+' — '+s.cmd);
+    // Gerçek dok sayfası hazır olduğunda: window.open('https://docs.omnidea.app/sdk/'+s.name.toLowerCase().replace(/[^a-z]/g,'-'));
+  };
+    g.appendChild(d);
+  });
+}
+
+// COPY KEY
+function copyKey(){
+  toast('ok','API Anahtarı Kopyalandı','Anahtarı güvenli bir yerde saklayın. Kimseyle paylaşmayın.');
+}
+
+// TOAST
+function toast(type,title,msg){
+  const s=document.getElementById('ts');
+  const icons={ok:'✦',info:'◈',warn:'◎'};
+  const t=document.createElement('div');
+  t.className='tt tt-'+type;
+  t.innerHTML=`<div style="font-size:0.8rem;flex-shrink:0;">${icons[type]||'◈'}</div><div class="tt-b"><div class="tt-t">${title}</div><div class="tt-m">${msg}</div></div><button class="tt-c" onclick="this.parentElement.remove()">✕</button>`;
+  s.appendChild(t);setTimeout(()=>t.remove&&t.remove(),5000);
+}
+
+// ── SUPABASE ENTEGRASYONu — PLANS & API ─────────────────────────────────────
+
+async function initPlans() {
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    // Giriş yapmamış — plan sayfası public, sadece "Başla" butonları auth'a yönlenir
+    document.querySelectorAll('.plan-btn:not(.pb-ghost)').forEach(btn => {
+      btn.addEventListener('click', () => { window.location.href = '2-omnidea-auth-GİRİS.html'; });
+    });
+    return;
+  }
+
+  // Kullanıcı planını çek ve aktif planı işaretle
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('plan, full_name')
+    .eq('id', session.user.id)
+    .single();
+
+  if (profile) {
+    // Plan butonlarını güncelle
+    const planMap = { free: 0, pro: 1, enterprise: 2 };
+    const activePlanIdx = planMap[profile.plan ?? 'free'] ?? 0;
+    document.querySelectorAll('.plan-btn').forEach((btn, i) => {
+      if (i === activePlanIdx) {
+        btn.textContent = 'Mevcut Plan ✓';
+        btn.classList.add('pb-ghost');
+        btn.style.pointerEvents = 'none';
+      }
+    });
+    toast('info', 'Plan Bilgisi', `Aktif planınız: ${(profile.plan || 'free').toUpperCase()}`);
+  }
+
+  // API anahtarını kullanıcı metadata'sından veya DB'den çek
+  const apiKey = session.user.user_metadata?.api_key;
+  const keyField = document.querySelector('.api-key-field');
+  if (keyField) {
+    keyField.value = apiKey
+      ? 'omni_live_sk_' + apiKey.slice(0, 4) + '••••••••••••' + apiKey.slice(-4)
+      : 'omni_live_sk_••••••••••••••••••••••••' + session.user.id.slice(0,4).toUpperCase();
+  }
+
+  // Kullanım istatistiklerini çek (notifications sayısı örneği)
+  const { count: callCount } = await sb
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', session.user.id);
+
+  // Progress barı gerçek kullanıma göre güncelle
+  if (typeof renderProgress === 'function') renderProgress();
+
+  // API key kopyala
+  window.copyKey = () => {
+    const val = keyField?.value || '';
+    navigator.clipboard?.writeText(val).then(() => toast('ok','Kopyalandı','API anahtarı panoya alındı.'));
+  };
+
+  // API key yenile
+  const regenBtn = document.querySelector('.api-key-regen');
+  if (regenBtn) {
+    regenBtn.onclick = async () => {
+      const newKey = crypto.randomUUID().replace(/-/g, '');
+      const { error } = await sb.auth.updateUser({ data: { api_key: newKey } });
+      if (error) { toast('warn','Hata',error.message); return; }
+      if (keyField) keyField.value = 'omni_live_sk_' + newKey.slice(0,4) + '••••' + newKey.slice(-4);
+      toast('warn','Anahtar Yenilendi','Eski API anahtarı devre dışı. Yeni anahtar aktif.');
+    };
+  }
+}
+
+// INIT
+renderFAQ();
+renderProgress();
+renderEndpoints();
+renderSDKs();
+initPlans();
+</script>
+</body>
+</html>

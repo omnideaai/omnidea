@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Hukuki & Güvenlik</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;
+  --bg:#080808;--bg2:#0F0F0F;--bg3:#161616;--bg4:#1E1E1E;--bg5:#242424;
+  --text:#F0EDE6;--text2:#A09A8E;--text3:#5A554E;
+  --border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.07);
+  --success:#4CAF7D;--error:#E05555;--info:#4A9ECA;--warn:#E8A23A;
+}
+html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);cursor: default;overflow-x:hidden;}
+.cursor{width:7px;height:7px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transition:transform 0.1s;}
+.cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transition:all 0.12s;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;background:rgba(8,8,8,0.95);border-bottom:0.5px solid var(--border2);height:52px;backdrop-filter:blur(20px);}
+.tlogo{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:0.08em;color:var(--text);padding:0 1.5rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;}
+.tlogo span{color:var(--gold);}
+.tnav{display:flex;height:100%;flex:1;overflow-x:auto;}
+.tnav::-webkit-scrollbar{display:none;}
+.tnav-item{white-space:nowrap;padding:0 1rem;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;height:100%;}
+.tnav-item:hover{color:var(--text2);}
+.tnav-item.active{color:var(--gold);border-bottom-color:var(--gold);}
+.tr{display:flex;align-items:center;gap:0.6rem;padding:0 1.2rem;flex-shrink:0;}
+.tb{font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:0.4rem 0.9rem;border-radius:2px;border:none;cursor: pointer;transition:all 0.2s;}
+.tb-g{background:none;color:var(--text2);border:0.5px solid var(--border2);}
+.tb-g:hover{border-color:var(--border);color:var(--text);}
+
+/* READING PROGRESS */
+.reading-progress{position:fixed;top:52px;left:0;right:0;height:2px;background:var(--border2);z-index:99;}
+.rp-fill{height:100%;background:var(--gold);width:0%;transition:width 0.1s;}
+
+/* LAYOUT */
+.panel{display:none;}
+.panel.active{display:grid;grid-template-columns:260px 1fr;min-height:calc(100vh - 52px);}
+
+/* SIDEBAR NAV */
+.doc-nav{position:sticky;top:52px;height:calc(100vh - 52px);overflow-y:auto;background:var(--bg2);border-right:0.5px solid var(--border2);padding:1.5rem 0;display:flex;flex-direction:column;}
+.doc-nav::-webkit-scrollbar{width:3px;}
+.doc-nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.dn-label{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--text3);padding:0.6rem 1.2rem 0.3rem;display:block;}
+.dn-item{display:flex;align-items:center;padding:0.42rem 1.2rem;font-size:0.78rem;color:var(--text2);cursor: pointer;transition:all 0.15s;border-left:2px solid transparent;}
+.dn-item:hover{color:var(--text);background:var(--bg3);}
+.dn-item.dn-active{color:var(--gold);border-left-color:var(--gold);background:rgba(201,168,76,0.05);}
+.dn-item.sub{padding-left:2rem;font-size:0.73rem;color:var(--text3);}
+.dn-item.sub:hover{color:var(--text2);}
+.dn-divider{height:0.5px;background:var(--border2);margin:0.6rem 1.2rem;}
+.doc-update{padding:1rem 1.2rem;margin-top:auto;border-top:0.5px solid var(--border2);}
+.du-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.3rem;}
+.du-date{font-size:0.72rem;color:var(--text2);}
+
+/* DOCUMENT CONTENT */
+.doc-content{padding:3rem 4rem;max-width:820px;}
+
+/* DOC HEADER */
+.doc-header{margin-bottom:2.5rem;padding-bottom:2rem;border-bottom:0.5px solid var(--border2);}
+.doc-tag{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.14em;color:var(--gold);margin-bottom:0.8rem;display:flex;align-items:center;gap:0.6rem;}
+.doc-tag::before{content:'';width:24px;height:0.5px;background:var(--gold);}
+.doc-title{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:var(--text);letter-spacing:-0.02em;line-height:1.1;margin-bottom:0.6rem;}
+.doc-version{font-size:0.72rem;color:var(--text3);}
+.doc-version span{color:var(--text2);}
+.doc-summary{background:var(--bg2);border:0.5px solid var(--border);border-radius:4px;padding:1.2rem 1.4rem;margin-top:1.2rem;}
+.ds-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--gold);margin-bottom:0.6rem;}
+.ds-text{font-size:0.82rem;color:var(--text2);line-height:1.7;font-weight:300;}
+
+/* SECTIONS */
+.doc-section{margin-bottom:2.5rem;scroll-margin-top:70px;}
+.ds-num{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:0.4rem;}
+h2.ds-heading{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:0.5px solid var(--border2);}
+h3.ds-subheading{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:600;color:var(--text);margin:1.2rem 0 0.5rem;}
+p.ds-p{font-size:0.85rem;color:var(--text2);line-height:1.85;font-weight:300;margin-bottom:0.8rem;}
+p.ds-p strong{color:var(--text);font-weight:500;}
+ul.ds-list{margin:0.5rem 0 1rem 0;display:flex;flex-direction:column;gap:0.4rem;}
+ul.ds-list li{font-size:0.83rem;color:var(--text2);line-height:1.65;font-weight:300;padding-left:1.2rem;position:relative;}
+ul.ds-list li::before{content:'—';position:absolute;left:0;color:var(--gold);font-size:0.75rem;}
+ul.ds-list li strong{color:var(--text);font-weight:500;}
+ol.ds-olist{margin:0.5rem 0 1rem 1.2rem;display:flex;flex-direction:column;gap:0.4rem;}
+ol.ds-olist li{font-size:0.83rem;color:var(--text2);line-height:1.65;font-weight:300;}
+ol.ds-olist li strong{color:var(--text);font-weight:500;}
+
+/* HIGHLIGHT BOX */
+.highlight-box{border-radius:3px;padding:1rem 1.2rem;margin:1rem 0;}
+.hb-info{background:rgba(74,158,202,0.07);border:0.5px solid rgba(74,158,202,0.2);}
+.hb-warn{background:rgba(232,162,58,0.07);border:0.5px solid rgba(232,162,58,0.2);}
+.hb-success{background:rgba(76,175,125,0.07);border:0.5px solid rgba(76,175,125,0.2);}
+.hb-error{background:rgba(224,85,85,0.07);border:0.5px solid rgba(224,85,85,0.2);}
+.hb-icon{font-size:0.85rem;margin-bottom:0.3rem;display:block;}
+.hb-text{font-size:0.8rem;line-height:1.65;font-weight:300;}
+.hb-info .hb-text{color:var(--info);}
+.hb-warn .hb-text{color:var(--warn);}
+.hb-success .hb-text{color:var(--success);}
+.hb-error .hb-text{color:var(--error);}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;margin:0.8rem 0 1.2rem;font-size:0.78rem;}
+.data-table th{text-align:left;padding:0.5rem 0.8rem;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);border-bottom:0.5px solid var(--border2);font-weight:400;}
+.data-table td{padding:0.55rem 0.8rem;border-bottom:0.5px solid var(--border2);color:var(--text2);vertical-align:top;line-height:1.5;}
+.data-table td:first-child{color:var(--text);font-weight:500;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--bg3);}
+
+/* COOKIE TOGGLE */
+.cookie-table{display:flex;flex-direction:column;gap:0.5rem;margin:0.8rem 0;}
+.ct-row{display:flex;align-items:center;gap:1rem;padding:0.8rem 1rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;}
+.ct-info{flex:1;}
+.ct-name{font-size:0.82rem;font-weight:500;color:var(--text);margin-bottom:2px;}
+.ct-desc{font-size:0.72rem;color:var(--text3);line-height:1.4;}
+.ct-tag{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;padding:2px 6px;border-radius:2px;flex-shrink:0;}
+.ctt-required{background:rgba(76,175,125,0.1);color:var(--success);}
+.ctt-optional{background:rgba(232,162,58,0.1);color:var(--warn);}
+.ctt-analytics{background:rgba(74,158,202,0.1);color:var(--info);}
+.toggle-switch{width:38px;height:22px;border-radius:11px;position:relative;cursor: pointer;transition:all 0.25s;border:none;flex-shrink:0;}
+.ts-on{background:var(--gold);}
+.ts-off{background:var(--bg4);}
+.ts-disabled{background:var(--bg4);opacity:0.4;cursor:default;}
+.toggle-switch::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--text);top:3px;transition:left 0.25s;}
+.ts-on::after{left:19px;}
+.ts-off::after, .ts-disabled::after{left:3px;}
+.save-pref-btn{width:100%;padding:0.6rem;background:var(--gold);border:none;border-radius:2px;font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;margin-top:0.8rem;}
+.save-pref-btn:hover{background:var(--gold-light);}
+
+/* SECURITY BADGES */
+.security-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin:1rem 0;}
+.sec-badge{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:1rem;display:flex;align-items:flex-start;gap:0.8rem;transition:border-color 0.15s;cursor: pointer;}
+.sec-badge:hover{border-color:var(--border);}
+.sb-icon{font-size:1.4rem;flex-shrink:0;}
+.sb-name{font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.sb-desc{font-size:0.72rem;color:var(--text3);line-height:1.4;}
+.sb-status{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--success);margin-top:0.4rem;}
+.sb-status::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--success);}
+
+/* RIGHTS GRID */
+.rights-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin:0.8rem 0;}
+.right-item{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.8rem 1rem;}
+.ri-icon{font-size:1rem;margin-bottom:0.4rem;}
+.ri-title{font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:0.2rem;}
+.ri-text{font-size:0.7rem;color:var(--text3);line-height:1.4;}
+
+/* CONTACT GRID */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin:1rem 0;}
+.contact-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:1rem;cursor: pointer;transition:all 0.15s;}
+.contact-card:hover{border-color:var(--border);}
+.cc-icon{font-size:1.1rem;margin-bottom:0.5rem;}
+.cc-title{font-size:0.8rem;font-weight:600;color:var(--text);margin-bottom:0.2rem;}
+.cc-sub{font-size:0.72rem;color:var(--text3);margin-bottom:0.4rem;}
+.cc-email{font-size:0.78rem;color:var(--gold);font-weight:500;}
+
+/* VULN STEPS */
+.vuln-steps{display:flex;flex-direction:column;gap:0;}
+.vs-item{display:flex;gap:1rem;padding:1rem 0;border-bottom:0.5px solid var(--border2);}
+.vs-item:last-child{border-bottom:none;}
+.vs-num{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--border);flex-shrink:0;width:30px;}
+.vs-title{font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:0.2rem;}
+.vs-text{font-size:0.78rem;color:var(--text2);line-height:1.6;font-weight:300;}
+
+/* TOAST */
+.ts-stack{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;width:300px;}
+.tt{display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:3px;border:0.5px solid;pointer-events:all;animation:tIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;}
+.tt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.tt-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);}
+.tt-ok::before{background:var(--success);}
+.tt-info{background:rgba(74,158,202,0.1);border-color:rgba(74,158,202,0.25);}
+.tt-info::before{background:var(--info);}
+.tt-warn{background:rgba(232,162,58,0.1);border-color:rgba(232,162,58,0.25);}
+.tt-warn::before{background:var(--warn);}
+.tt-b{flex:1;}
+.tt-t{font-size:0.73rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.tt-m{font-size:0.66rem;color:var(--text2);line-height:1.4;}
+.tt-c{background:none;border:none;color:var(--text3);font-size:0.72rem;cursor: pointer;padding:0;}
+@keyframes tIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+</script>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+<div class="reading-progress"><div class="rp-fill" id="rpFill"></div></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tlogo">OMNI<span>IDEA</span></div>
+  <div class="tnav">
+    <button class="tnav-item active" id="nav-privacy" onclick="switchDoc('privacy',this)">🔒 Gizlilik Politikası</button>
+    <button class="tnav-item" id="nav-terms" onclick="switchDoc('terms',this)">📋 Kullanım Koşulları</button>
+    <button class="tnav-item" id="nav-cookie" onclick="switchDoc('cookie',this)">🍪 Çerez Politikası</button>
+    <button class="tnav-item" id="nav-security" onclick="switchDoc('security',this)">🛡 Güvenlik</button>
+  </div>
+  <div class="tr">
+    <button onclick="window.location.href=\'1-omnidea-landing-entegre.html\'" class="tb tb-g">← Ana Sayfa</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     GİZLİLİK POLİTİKASI
+══════════════════════════════ -->
+<div class="panel active" id="panel-privacy">
+  <div class="doc-nav">
+    <span class="dn-label">İçindekiler</span>
+    <div class="dn-item dn-active" onclick="goTo('p1')">1. Genel Bakış</div>
+    <div class="dn-item" onclick="goTo('p2')">2. Topladığımız Veriler</div>
+    <div class="dn-item sub" onclick="goTo('p2a')">2.1 Hesap Verileri</div>
+    <div class="dn-item sub" onclick="goTo('p2b')">2.2 Kullanım Verileri</div>
+    <div class="dn-item sub" onclick="goTo('p2c')">2.3 Tasarım Verileri</div>
+    <div class="dn-item sub" onclick="goTo('p2d')">2.4 Ödeme Verileri</div>
+    <div class="dn-item" onclick="goTo('p3')">3. Verileri Nasıl Kullanırız</div>
+    <div class="dn-item" onclick="goTo('p4')">4. Veri Paylaşımı</div>
+    <div class="dn-item" onclick="goTo('p5')">5. Kullanıcı Hakları</div>
+    <div class="dn-item" onclick="goTo('p6')">6. Veri Saklama Süreleri</div>
+    <div class="dn-item" onclick="goTo('p7')">7. Çocukların Gizliliği</div>
+    <div class="dn-item" onclick="goTo('p8')">8. Uluslararası Aktarım</div>
+    <div class="dn-item" onclick="goTo('p9')">9. Politika Değişiklikleri</div>
+    <div class="dn-item" onclick="goTo('p10')">10. İletişim</div>
+    <div class="dn-divider"></div>
+    <div class="doc-update"><div class="du-label">Son Güncelleme</div><div class="du-date">16 Mart 2025</div></div>
+  </div>
+  <div class="doc-content">
+    <div class="doc-header">
+      <div class="doc-tag">Hukuki Belgeler</div>
+      <h1 class="doc-title">Gizlilik Politikası</h1>
+      <div class="doc-version">Sürüm <span>2.1</span> · Güncelleme: <span>16 Mart 2025</span></div>
+      <div class="doc-summary">
+        <div class="ds-title">Özet</div>
+        <p class="ds-text">OMNIDEA kişisel verilerinizi yalnızca platformun çalışması için gerekli olduğu ölçüde toplar ve kullanır. Verilerinizi üçüncü taraflara satmayız. AB GDPR ve Türk KVKK standartlarına tam uyum sağlarız.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="p1">
+      <div class="ds-num">Bölüm 01</div>
+      <h2 class="ds-heading">Genel Bakış</h2>
+      <p class="ds-p">Bu Gizlilik Politikası, <strong>OMNIDEA Technologies</strong> tarafından işletilen omnidea.io platformunun kişisel verileri nasıl topladığını, kullandığını, sakladığını ve koruduğunu açıklamaktadır.</p>
+      <p class="ds-p">Platformumuzu kullanan tüm kişiler — tasarımcılar, üreticiler ve ziyaretçiler dahil — bu politikanın kapsamına girmektedir.</p>
+      <div class="highlight-box hb-info">
+        <span class="hb-icon">◈</span>
+        <p class="hb-text">OMNIDEA, Türkiye'deki <strong>6698 sayılı KVKK</strong> ve Avrupa Birliği'nin <strong>GDPR</strong> ile uyumlu veri işleme süreçleri yürütmektedir.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="p2">
+      <div class="ds-num">Bölüm 02</div>
+      <h2 class="ds-heading">Topladığımız Veriler</h2>
+      <h3 class="ds-subheading" id="p2a">2.1 Hesap ve Kimlik Verileri</h3>
+      <ul class="ds-list">
+        <li><strong>Kimlik bilgileri:</strong> Ad, soyad, e-posta adresi, şifre (şifrelenmiş)</li>
+        <li><strong>Profil bilgileri:</strong> Firma adı, ülke, şehir, biyografi, uzmanlık alanı</li>
+        <li><strong>Sosyal giriş:</strong> Google, LinkedIn token bilgileri</li>
+        <li><strong>Üretici belgeleri:</strong> Sertifikalar, ticaret sicil, ISO belgeleri</li>
+        <li><strong>İletişim tercihleri:</strong> Bildirim ayarları, dil ve bölge tercihleri</li>
+      </ul>
+      <h3 class="ds-subheading" id="p2b">2.2 Kullanım ve Davranış Verileri</h3>
+      <table class="data-table">
+        <tr><th>Veri Türü</th><th>Amaç</th><th>Saklama</th></tr>
+        <tr><td>IP Adresi</td><td>Güvenlik, coğrafi kısıtlama</td><td>90 gün</td></tr>
+        <tr><td>Tarayıcı & Cihaz</td><td>Uyumluluk, güvenlik</td><td>12 ay</td></tr>
+        <tr><td>Oturum Süreleri</td><td>Platform iyileştirme</td><td>6 ay</td></tr>
+        <tr><td>Tıklama & Gezinme</td><td>UX analitik</td><td>6 ay</td></tr>
+        <tr><td>Hata Günlükleri</td><td>Teknik destek</td><td>30 gün</td></tr>
+        <tr><td>API İstekleri</td><td>Rate limiting, güvenlik</td><td>30 gün</td></tr>
+      </table>
+      <h3 class="ds-subheading" id="p2c">2.3 Tasarım ve İçerik Verileri</h3>
+      <ul class="ds-list">
+        <li><strong>Tasarım dosyaları:</strong> STL, DXF, OBJ, PDF formatındaki üretim dosyaları</li>
+        <li><strong>3D render görselleri:</strong> AI tarafından üretilen görseller</li>
+        <li><strong>Proje açıklamaları:</strong> Tasarım notları, parametreler, üretim gereksinimleri</li>
+        <li><strong>AI prompt geçmişi:</strong> Nano Banana'ya gönderilen tanımlar (anonim işlenir)</li>
+        <li><strong>Mesaj içerikleri:</strong> Tasarımcı-üretici yazışmaları (şifrelenmiş)</li>
+      </ul>
+      <div class="highlight-box hb-success">
+        <span class="hb-icon">🔒</span>
+        <p class="hb-text"><strong>Fikri Mülkiyet Güvencesi:</strong> Tasarım dosyalarınız münhasıran size aittir. OMNIDEA tasarımlarınızı satmaz veya ticari amaçla kullanmaz. Her tasarıma zaman damgalı kriptografik kimlik atanır.</p>
+      </div>
+      <h3 class="ds-subheading" id="p2d">2.4 Ödeme ve Finansal Veriler</h3>
+      <p class="ds-p">Ödeme bilgileri doğrudan OMNIDEA sunucularında saklanmaz. Tüm ödeme işlemleri PCI DSS uyumlu Stripe altyapısı üzerinden yürütülür.</p>
+      <ul class="ds-list">
+        <li>Kart bilgileri yalnızca Stripe'ta tokenize biçimde saklanır</li>
+        <li>OMNIDEA yalnızca işlem ID, tutar ve tarih bilgisini saklar</li>
+        <li>Escrow işlem geçmişi şifreli veritabanında tutulur</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="p3">
+      <div class="ds-num">Bölüm 03</div>
+      <h2 class="ds-heading">Verileri Nasıl Kullanırız</h2>
+      <ul class="ds-list">
+        <li><strong>Hizmet sunumu:</strong> Hesap yönetimi, stüdyo, pazar yeri ve escrow sisteminin çalıştırılması</li>
+        <li><strong>Kişiselleştirme:</strong> Sektörünüze göre üretici önerileri, akıllı eşleştirme</li>
+        <li><strong>Güvenlik:</strong> Sahtekarlık tespiti, bot önleme, hesap koruması</li>
+        <li><strong>İletişim:</strong> İşlem bildirimleri, güvenlik uyarıları, hizmet güncellemeleri</li>
+        <li><strong>Hukuki yükümlülük:</strong> Vergi, muhasebe ve yasal saklama gereksinimleri</li>
+        <li><strong>Platform iyileştirme:</strong> Anonim kullanım analitiği</li>
+      </ul>
+      <div class="highlight-box hb-warn">
+        <span class="hb-icon">⚠</span>
+        <p class="hb-text">Verileriniz <strong>hiçbir koşulda</strong> üçüncü taraf reklamcılara satılmaz veya kiralanmaz. Pazarlama e-postaları yalnızca açık onayınız alındıktan sonra gönderilir.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="p4">
+      <div class="ds-num">Bölüm 04</div>
+      <h2 class="ds-heading">Veri Paylaşımı</h2>
+      <table class="data-table">
+        <tr><th>Alıcı</th><th>Paylaşılan Veri</th><th>Amaç</th></tr>
+        <tr><td>Stripe Payments</td><td>Ödeme tokenı, tutar</td><td>Ödeme işleme</td></tr>
+        <tr><td>Nano Banana AI</td><td>Anonim prompt verileri</td><td>Tasarım üretimi</td></tr>
+        <tr><td>AWS (Amazon)</td><td>Şifrelenmiş dosyalar</td><td>Depolama altyapısı</td></tr>
+        <tr><td>SendGrid</td><td>E-posta adresi</td><td>Bildirim gönderimi</td></tr>
+        <tr><td>Vergi makamları</td><td>Fatura bilgileri</td><td>Hukuki yükümlülük</td></tr>
+        <tr><td>Yetkili makamlar</td><td>Mahkeme kararıyla</td><td>Yasal zorunluluk</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-section" id="p5">
+      <div class="ds-num">Bölüm 05</div>
+      <h2 class="ds-heading">Kullanıcı Hakları</h2>
+      <p class="ds-p">KVKK Madde 11 ve GDPR Madde 15-22 kapsamındaki haklarınız:</p>
+      <div class="rights-grid">
+        <div class="right-item"><div class="ri-icon">📋</div><div class="ri-title">Bilgi Alma Hakkı</div><div class="ri-text">Hangi verilerinizin toplandığını ve nasıl işlendiğini öğrenebilirsiniz.</div></div>
+        <div class="right-item"><div class="ri-icon">📥</div><div class="ri-title">Veri Taşınabilirliği</div><div class="ri-text">Verilerinizi makine okunabilir JSON/CSV formatında talep edebilirsiniz.</div></div>
+        <div class="right-item"><div class="ri-icon">✏️</div><div class="ri-title">Düzeltme Hakkı</div><div class="ri-text">Yanlış veya eksik verilerinizin güncellenmesini talep edebilirsiniz.</div></div>
+        <div class="right-item"><div class="ri-icon">🗑</div><div class="ri-title">Silme Hakkı</div><div class="ri-text">Hesabınızın ve verilerinizin tamamen silinmesini talep edebilirsiniz.</div></div>
+        <div class="right-item"><div class="ri-icon">⏸</div><div class="ri-title">İşlemi Durdurma</div><div class="ri-text">Belirli veri işleme faaliyetlerini kısıtlamasını isteyebilirsiniz.</div></div>
+        <div class="right-item"><div class="ri-icon">✕</div><div class="ri-title">İtiraz Hakkı</div><div class="ri-text">Pazarlama veya profil analizi gibi işlemlere itiraz edebilirsiniz.</div></div>
+      </div>
+      <p class="ds-p">Bu hakları kullanmak için <strong>privacy [at] omnidea.io</strong> adresine yazın veya Ayarlar → Gizlilik menüsünü kullanın. Talepler <strong>30 gün</strong> içinde yanıtlanır.</p>
+    </div>
+
+    <div class="doc-section" id="p6">
+      <div class="ds-num">Bölüm 06</div>
+      <h2 class="ds-heading">Veri Saklama Süreleri</h2>
+      <table class="data-table">
+        <tr><th>Veri Kategorisi</th><th>Saklama Süresi</th><th>Dayanak</th></tr>
+        <tr><td>Hesap ve profil bilgileri</td><td>Hesap aktif + 2 yıl</td><td>Hizmet sözleşmesi</td></tr>
+        <tr><td>Tasarım dosyaları</td><td>Kullanıcı silene kadar</td><td>Kullanıcı tercihi</td></tr>
+        <tr><td>Mesaj ve yazışmalar</td><td>3 yıl</td><td>Hukuki yükümlülük</td></tr>
+        <tr><td>Ödeme ve fatura kayıtları</td><td>10 yıl</td><td>Vergi mevzuatı</td></tr>
+        <tr><td>Güvenlik günlükleri</td><td>90 gün</td><td>Güvenlik gereksinimi</td></tr>
+        <tr><td>Analitik veriler</td><td>Anonim — süresiz</td><td>Meşru menfaat</td></tr>
+        <tr><td>Silme sonrası</td><td>30 gün (kurtarma penceresi)</td><td>KVKK / GDPR</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-section" id="p7">
+      <div class="ds-num">Bölüm 07</div>
+      <h2 class="ds-heading">Çocukların Gizliliği</h2>
+      <p class="ds-p">OMNIDEA, <strong>18 yaşın altındaki</strong> kişilere yönelik hizmet sunmamaktadır. 18 yaş altı bir kişinin verilerini topladığımızı tespit edersek, söz konusu veriler derhal silinir ve hesap kapatılır.</p>
+      <p class="ds-p">18 yaş altı çocuğunuzun platformda hesap oluşturduğunu fark ederseniz privacy [at] omnidea.io adresine bildirin.</p>
+    </div>
+
+    <div class="doc-section" id="p8">
+      <div class="ds-num">Bölüm 08</div>
+      <h2 class="ds-heading">Uluslararası Veri Aktarımı</h2>
+      <p class="ds-p">Sunucu altyapısını öncelikli olarak <strong>Türkiye ve AB veri merkezlerinde</strong> (Frankfurt, AWS EU-Central) barındırıyoruz. AB dışı aktarımlarda:</p>
+      <ul class="ds-list">
+        <li>AB Standart Sözleşme Maddeleri (SCC) imzalanmış sağlayıcılar tercih edilir</li>
+        <li>Tüm aktarımlar TLS 1.3+ şifreli kanallar üzerinden yapılır</li>
+        <li>Yeterli koruma kararı olmayan ülkeler için açık onayınız alınır</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="p9">
+      <div class="ds-num">Bölüm 09</div>
+      <h2 class="ds-heading">Politika Değişiklikleri</h2>
+      <p class="ds-p">Önemli değişiklikler <strong>en az 30 gün öncesinde</strong> e-posta ve platform bildirimi ile duyurulur. Değişiklik sonrası platformu kullanmaya devam etmek yeni politikayı kabul ettiğiniz anlamına gelir.</p>
+    </div>
+
+    <div class="doc-section" id="p10">
+      <div class="ds-num">Bölüm 10</div>
+      <h2 class="ds-heading">İletişim ve Veri Sorumlusu</h2>
+      <div class="contact-grid">
+        <div class="contact-card"><div class="cc-icon">📧</div><div class="cc-title">Gizlilik Talebi</div><div class="cc-sub">KVKK / GDPR hakları</div><div class="cc-email">privacy [at] omnidea.io</div></div>
+        <div class="contact-card"><div class="cc-icon">⚖</div><div class="cc-title">Hukuki Birim</div><div class="cc-sub">Hukuki bildirimler</div><div class="cc-email">legal [at] omnidea.io</div></div>
+        <div class="contact-card"><div class="cc-icon">🏢</div><div class="cc-title">Veri Sorumlusu</div><div class="cc-sub">OMNIDEA Technologies</div><div class="cc-email">Taşkent, Özbekistan</div></div>
+        <div class="contact-card"><div class="cc-icon">🇪🇺</div><div class="cc-title">AB Temsilcisi</div><div class="cc-sub">GDPR Madde 27</div><div class="cc-email">eu-rep [at] omnidea.io</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     KULLANIM KOŞULLARI
+══════════════════════════════ -->
+<div class="panel" id="panel-terms">
+  <div class="doc-nav">
+    <span class="dn-label">İçindekiler</span>
+    <div class="dn-item dn-active" onclick="goTo('t1')">1. Sözleşmenin Tarafları</div>
+    <div class="dn-item" onclick="goTo('t2')">2. Hesap Oluşturma</div>
+    <div class="dn-item" onclick="goTo('t3')">3. Kullanım Kuralları</div>
+    <div class="dn-item sub" onclick="goTo('t3a')">3.1 İzin Verilen Kullanım</div>
+    <div class="dn-item sub" onclick="goTo('t3b')">3.2 Yasaklanan Davranışlar</div>
+    <div class="dn-item" onclick="goTo('t4')">4. Fikri Mülkiyet</div>
+    <div class="dn-item" onclick="goTo('t5')">5. Ödeme & Escrow Şartları</div>
+    <div class="dn-item" onclick="goTo('t6')">6. Tasarımcı Yükümlülükleri</div>
+    <div class="dn-item" onclick="goTo('t7')">7. Üretici Yükümlülükleri</div>
+    <div class="dn-item" onclick="goTo('t8')">8. Anlaşmazlık Çözümü</div>
+    <div class="dn-item" onclick="goTo('t9')">9. Sorumluluk Sınırları</div>
+    <div class="dn-item" onclick="goTo('t10')">10. Fesih & Uygulanacak Hukuk</div>
+    <div class="dn-divider"></div>
+    <div class="doc-update"><div class="du-label">Son Güncelleme</div><div class="du-date">16 Mart 2025</div></div>
+  </div>
+  <div class="doc-content">
+    <div class="doc-header">
+      <div class="doc-tag">Hukuki Belgeler</div>
+      <h1 class="doc-title">Kullanım Koşulları</h1>
+      <div class="doc-version">Sürüm <span>3.0</span> · Güncelleme: <span>16 Mart 2025</span></div>
+      <div class="doc-summary">
+        <div class="ds-title">Özet</div>
+        <p class="ds-text">Bu koşullar, OMNIDEA platformunu kullanırken her iki tarafın — sizin ve OMNIDEA'nın — hak ve yükümlülüklerini belirler. Platforma kaydolmak bu koşulları kabul ettiğiniz anlamına gelir.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="t1">
+      <div class="ds-num">Bölüm 01</div>
+      <h2 class="ds-heading">Sözleşmenin Tarafları</h2>
+      <p class="ds-p">Bu Kullanım Koşulları, <strong>OMNIDEA Technologies</strong> ile platforma kayıtlı kullanıcılar arasında geçerli hukuki bir sözleşme oluşturur. Kullanıcılar iki kategoride sınıflandırılır: <strong>Tasarımcılar</strong> ve <strong>Üreticiler</strong>.</p>
+    </div>
+
+    <div class="doc-section" id="t2">
+      <div class="ds-num">Bölüm 02</div>
+      <h2 class="ds-heading">Hesap Oluşturma ve Güvenlik</h2>
+      <ul class="ds-list">
+        <li>Hesap oluşturmak için <strong>18 yaşını doldurmuş</strong> olmak zorunludur</li>
+        <li>Kayıt formundaki bilgilerin <strong>doğru ve güncel</strong> olması kullanıcının sorumluluğundadır</li>
+        <li>Hesap şifresi gizli tutulmalıdır; paylaşılması sonucu oluşan zararlardan OMNIDEA sorumlu değildir</li>
+        <li>Yetkisiz erişim tespit ederseniz security [at] omnidea.io adresine bildirin</li>
+        <li>Her kullanıcı yalnızca bir hesap oluşturabilir; çoklu hesap platform kurallarını ihlal eder</li>
+        <li>Üreticiler kayıt sırasında kimlik ve iş yeri belgelerini ibraz etmekle yükümlüdür</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="t3">
+      <div class="ds-num">Bölüm 03</div>
+      <h2 class="ds-heading">Platform Kullanım Kuralları</h2>
+      <h3 class="ds-subheading" id="t3a">3.1 İzin Verilen Kullanım</h3>
+      <ul class="ds-list">
+        <li>Kişisel veya ticari üretim amacıyla tasarım oluşturmak ve pazaryerine göndermek</li>
+        <li>Üretici olarak projelere teklif vermek ve üretim anlaşması yapmak</li>
+        <li>Platform topluluğunda bilgi ve deneyim paylaşmak</li>
+        <li>API aracılığıyla kendi uygulamalarınıza platform hizmetlerini entegre etmek (Pro/Kurumsal)</li>
+        <li>Şablon pazaryerinden tasarım şablonu satın almak veya satmak</li>
+      </ul>
+      <h3 class="ds-subheading" id="t3b">3.2 Kesinlikle Yasaklanan Davranışlar</h3>
+      <div class="highlight-box hb-error">
+        <span class="hb-icon">🚫</span>
+        <p class="hb-text">Aşağıdaki davranışlar <strong>derhal hesap kapatma ve hukuki işlem</strong> ile sonuçlanabilir.</p>
+      </div>
+      <ul class="ds-list">
+        <li><strong>Fikri mülkiyet ihlali:</strong> Başkasına ait tasarımları izinsiz yüklemek veya satmak</li>
+        <li><strong>Sahte içerik:</strong> Yanıltıcı ürün açıklaması, sahte belge veya uydurma değerlendirme</li>
+        <li><strong>Platform bypass:</strong> Ödeme ve iletişimi OMNIDEA dışında sürdürerek komisyon kaçırmak</li>
+        <li><strong>Bot ve spam:</strong> Otomatik sistem ile sahte teklif, mesaj veya kayıt oluşturmak</li>
+        <li><strong>Yasa dışı içerik:</strong> Silah, uyuşturucu veya yasaklı ürün tasarımı yüklemek</li>
+        <li><strong>Güvenlik ihlali:</strong> Platforma yetkisiz erişim, SQL injection, XSS veya diğer saldırılar</li>
+        <li><strong>Taciz:</strong> Diğer kullanıcılara tehdit, ayrımcılık veya hakaret içeren mesaj göndermek</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="t4">
+      <div class="ds-num">Bölüm 04</div>
+      <h2 class="ds-heading">Fikri Mülkiyet Hakları</h2>
+      <p class="ds-p"><strong>Kullanıcı İçeriği:</strong> Platforma yüklediğiniz tasarımlar ve içerikler üzerindeki tüm haklar size aittir. OMNIDEA mülkiyet hakkı talep etmez.</p>
+      <p class="ds-p"><strong>Lisans:</strong> Platforma içerik yükleyerek OMNIDEA'ya hizmetin işletilmesi için dünya çapında, telifsiz, devredilemez bir kullanım lisansı vermiş olursunuz.</p>
+      <div class="highlight-box hb-success">
+        <span class="hb-icon">✦</span>
+        <p class="hb-text"><strong>Zaman Damgalı Koruma:</strong> Her tasarım platforma yüklendiğinde kriptografik hash ile zaman damgası atanır. Bu kayıt fikri mülkiyet anlaşmazlıklarında delil niteliği taşır.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="t5">
+      <div class="ds-num">Bölüm 05</div>
+      <h2 class="ds-heading">Ödeme, Komisyon ve Escrow Şartları</h2>
+      <table class="data-table">
+        <tr><th>Plan</th><th>Komisyon</th><th>Uygulama</th></tr>
+        <tr><td>Ücretsiz</td><td>%5</td><td>Her tamamlanan işlemden</td></tr>
+        <tr><td>Pro</td><td>%3.5</td><td>Her tamamlanan işlemden</td></tr>
+        <tr><td>Kurumsal</td><td>%2</td><td>Her tamamlanan işlemden</td></tr>
+        <tr><td>İptal (Üretici Hatası)</td><td>%0 + Tam İade</td><td>Üreticiden kaynaklanan durum</td></tr>
+        <tr><td>İptal (Tasarımcı Hatası)</td><td>%5 platformda kalır</td><td>Üretim başlamışsa</td></tr>
+      </table>
+      <h3 class="ds-subheading">Escrow Kuralları</h3>
+      <ul class="ds-list">
+        <li>Teklif kabul edildiğinde ödeme tutarı güvenli escrow hesabına alınır</li>
+        <li>Üretim tamamlanıp tasarımcı onayı verene kadar escrow serbest bırakılmaz</li>
+        <li>Teslimat onayından sonra <strong>7 iş günü</strong> içinde ödeme üreticiye aktarılır</li>
+        <li>Teslimattan itibaren <strong>14 gün</strong> içinde itiraz bildirilmezse escrow otomatik serbest bırakılır</li>
+        <li>Anlaşmazlık durumunda OMNIDEA tahkim sürecini başlatır ve escrow dondurulur</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="t6">
+      <div class="ds-num">Bölüm 06–07</div>
+      <h2 class="ds-heading">Tasarımcı ve Üretici Yükümlülükleri</h2>
+      <h3 class="ds-subheading">Tasarımcılar</h3>
+      <ul class="ds-list">
+        <li>Yüklenen tüm tasarımların özgün veya lisanslı olduğunu beyan ve taahhüt ederler</li>
+        <li>Teknik dosyaların (STL, DXF) doğru ve üretim için uygun olmasından sorumludurlar</li>
+        <li>Teslim edilen ürünü makul sürede inceleyerek geri bildirim vermeyi taahhüt ederler</li>
+      </ul>
+      <h3 class="ds-subheading">Üreticiler</h3>
+      <ul class="ds-list">
+        <li>Sertifikaların ve üretim kapasitesi bilgilerinin doğru olduğunu beyan ederler</li>
+        <li>Teklif verdikleri projeyi anlaşılan süre ve kalitede teslim etmeyi taahhüt ederler</li>
+        <li>Tasarım dosyalarını yalnızca ilgili proje kapsamında kullanmayı kabul ederler</li>
+        <li>Kalite kontrol süreçlerini tamamlayarak teslim öncesi onay fotoğrafı göndermeyi taahhüt ederler</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="t7">
+      <div class="ds-num">Bölüm 08</div>
+      <h2 class="ds-heading">Anlaşmazlık Çözümü</h2>
+      <ol class="ds-olist">
+        <li><strong>Doğrudan Müzakere (0–7 gün):</strong> Taraflar platform mesajlaşmasıyla çözmeye çalışır.</li>
+        <li><strong>OMNIDEA Arabuluculuğu (7–21 gün):</strong> Moderasyon ekibi devreye girer, kanıt istenir.</li>
+        <li><strong>Bağımsız Tahkim (21–45 gün):</strong> Uzlaşı sağlanamazsa bağımsız tahkim kurumuna başvurulur.</li>
+        <li><strong>Yargı yolu:</strong> Tahkim sonucu kabul edilmezse İstanbul Mahkemeleri yetkilidir.</li>
+      </ol>
+    </div>
+
+    <div class="doc-section" id="t8">
+      <div class="ds-num">Bölüm 09</div>
+      <h2 class="ds-heading">Sorumluluk Sınırları</h2>
+      <ul class="ds-list">
+        <li>OMNIDEA üretim anlaşmalarında taraf değil, aracı konumundadır</li>
+        <li>Üretim kalitesinden doğan hasarlar birincil olarak üreticinin sorumluluğundadır</li>
+        <li>Tasarım hatalarından kaynaklanan üretim sorunları tasarımcının sorumluluğundadır</li>
+        <li>OMNIDEA'nın azami sorumluluğu ilgili işlemin toplam değeriyle sınırlıdır</li>
+        <li>Mücbir sebep durumlarında OMNIDEA sorumlu tutulamaz</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="t9"><span id="t10" style="display:block;margin-top:-70px;padding-top:70px;"></span>
+      <div class="ds-num">Bölüm 10</div>
+      <h2 class="ds-heading">Fesih ve Uygulanacak Hukuk</h2>
+      <p class="ds-p">OMNIDEA, koşulların ihlali veya platform güvenliğini tehdit eden davranışlar tespit edilmesinde <strong>önceden bildirim yapmaksızın</strong> hesabı askıya alma veya kapatma hakkını saklı tutar.</p>
+      <div class="highlight-box hb-info">
+        <span class="hb-icon">⚖</span>
+        <p class="hb-text">Bu sözleşme <strong>Türkiye Cumhuriyeti hukukuna</strong> tabidir. Anlaşmazlıklarda İstanbul Mahkemeleri yetkilidir. AB kullanıcıları için GDPR hükümleri öncelik taşır.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     ÇEREZ POLİTİKASI
+══════════════════════════════ -->
+<div class="panel" id="panel-cookie">
+  <div class="doc-nav">
+    <span class="dn-label">İçindekiler</span>
+    <div class="dn-item dn-active" onclick="goTo('c1')">1. Çerez Nedir?</div>
+    <div class="dn-item" onclick="goTo('c2')">2. Kullandığımız Çerezler</div>
+    <div class="dn-item sub" onclick="goTo('c2a')">2.1 Zorunlu Çerezler</div>
+    <div class="dn-item sub" onclick="goTo('c2b')">2.2 Analitik Çerezler</div>
+    <div class="dn-item sub" onclick="goTo('c2c')">2.3 Tercih Çerezleri</div>
+    <div class="dn-item sub" onclick="goTo('c2d')">2.4 Pazarlama Çerezleri</div>
+    <div class="dn-item" onclick="goTo('c3')">3. Üçüncü Taraf Çerezler</div>
+    <div class="dn-item" onclick="goTo('c4')">4. Çerez Tercihleri</div>
+    <div class="dn-item" onclick="goTo('c5')">5. Tarayıcı Ayarları</div>
+    <div class="dn-item" onclick="goTo('c6')">6. İletişim</div>
+    <div class="dn-divider"></div>
+    <div class="doc-update"><div class="du-label">Son Güncelleme</div><div class="du-date">16 Mart 2025</div></div>
+  </div>
+  <div class="doc-content">
+    <div class="doc-header">
+      <div class="doc-tag">Hukuki Belgeler</div>
+      <h1 class="doc-title">Çerez Politikası</h1>
+      <div class="doc-version">Sürüm <span>1.4</span> · Güncelleme: <span>16 Mart 2025</span></div>
+      <div class="doc-summary">
+        <div class="ds-title">Özet</div>
+        <p class="ds-text">OMNIDEA platformun çalışması için zorunlu çerezleri her zaman kullanır. Analitik ve pazarlama çerezleri ise yalnızca onayınızla etkinleştirilir. Tercihlerinizi aşağıdan değiştirebilirsiniz.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="c1">
+      <div class="ds-num">Bölüm 01</div>
+      <h2 class="ds-heading">Çerez Nedir?</h2>
+      <p class="ds-p">Çerezler, bir web sitesini ziyaret ettiğinizde cihazınıza yerleştirilen küçük metin dosyalarıdır. Platformun düzgün çalışmasını, tercihlerinizin hatırlanmasını ve kullanım verilerinin toplanmasını sağlar.</p>
+      <p class="ds-p">OMNIDEA çerezlerin yanı sıra localStorage, sessionStorage ve piksel etiketleri gibi benzer teknolojileri de kullanabilir.</p>
+    </div>
+
+    <div class="doc-section" id="c2">
+      <div class="ds-num">Bölüm 02</div>
+      <h2 class="ds-heading">Kullandığımız Çerezler</h2>
+
+      <h3 class="ds-subheading" id="c2a">2.1 Zorunlu Çerezler — Her Zaman Aktif</h3>
+      <div class="cookie-table">
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_session</div><div class="ct-desc">Oturum kimliği — giriş durumunuzu korur. 30 dakika hareketsizlikte sona erer.</div></div>
+          <span class="ct-tag ctt-required">Zorunlu</span>
+          <button class="toggle-switch ts-disabled" disabled></button>
+        </div>
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_csrf</div><div class="ct-desc">Çapraz site istek sahteciliği (CSRF) koruması. Her form gönderiminde doğrulama sağlar.</div></div>
+          <span class="ct-tag ctt-required">Zorunlu</span>
+          <button class="toggle-switch ts-disabled" disabled></button>
+        </div>
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_lang</div><div class="ct-desc">Dil ve para birimi tercihinizi hatırlar. Süresi 1 yıldır.</div></div>
+          <span class="ct-tag ctt-required">Zorunlu</span>
+          <button class="toggle-switch ts-disabled" disabled></button>
+        </div>
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_consent</div><div class="ct-desc">Çerez onay tercihlerinizi saklar.</div></div>
+          <span class="ct-tag ctt-required">Zorunlu</span>
+          <button class="toggle-switch ts-disabled" disabled></button>
+        </div>
+      </div>
+
+      <h3 class="ds-subheading" id="c2b">2.2 Analitik Çerezler</h3>
+      <div class="cookie-table">
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_analytics</div><div class="ct-desc">Sayfa görüntülemeleri, tıklamalar ve kullanım yollarını ölçer. Kişisel kimlik içermez.</div></div>
+          <span class="ct-tag ctt-analytics">Analitik</span>
+          <button class="toggle-switch ts-on" onclick="toggleCookie(this)"></button>
+        </div>
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_perf</div><div class="ct-desc">Sayfa yükleme ve API yanıt sürelerini ölçer. Performans iyileştirme amaçlı.</div></div>
+          <span class="ct-tag ctt-analytics">Analitik</span>
+          <button class="toggle-switch ts-on" onclick="toggleCookie(this)"></button>
+        </div>
+      </div>
+
+      <h3 class="ds-subheading" id="c2c">2.3 Tercih Çerezleri</h3>
+      <div class="cookie-table">
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_prefs</div><div class="ct-desc">Dashboard düzeni, filtre ayarları ve görünüm tercihlerinizi saklar.</div></div>
+          <span class="ct-tag ctt-optional">Tercih</span>
+          <button class="toggle-switch ts-on" onclick="toggleCookie(this)"></button>
+        </div>
+      </div>
+
+      <h3 class="ds-subheading" id="c2d">2.4 Pazarlama ve Yeniden Hedefleme Çerezleri</h3>
+      <div class="cookie-table">
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_mkt</div><div class="ct-desc">İlgilendiğiniz sektörlere göre platform içi öneriler sunar. Dış reklam ağlarıyla paylaşılmaz.</div></div>
+          <span class="ct-tag ctt-optional">Pazarlama</span>
+          <button class="toggle-switch ts-off" onclick="toggleCookie(this)"></button>
+        </div>
+        <div class="ct-row">
+          <div class="ct-info"><div class="ct-name">omni_retarget</div><div class="ct-desc">Platform dışında bize ait reklamları görmenizi sağlar. Tamamen opsiyoneldir.</div></div>
+          <span class="ct-tag ctt-optional">Pazarlama</span>
+          <button class="toggle-switch ts-off" onclick="toggleCookie(this)"></button>
+        </div>
+      </div>
+      <button class="save-pref-btn" onclick="saveCookiePrefs()">Tercihlerimi Kaydet ✦</button>
+    </div>
+
+    <div class="doc-section" id="c3">
+      <div class="ds-num">Bölüm 03</div>
+      <h2 class="ds-heading">Üçüncü Taraf Çerezler</h2>
+      <table class="data-table">
+        <tr><th>Sağlayıcı</th><th>Amaç</th><th>Politika</th></tr>
+        <tr><td>Stripe</td><td>Ödeme işleme, sahtekarlık önleme</td><td>stripe.com/privacy</td></tr>
+        <tr><td>Google Analytics</td><td>Ziyaretçi analizi (anonim)</td><td>policies.google.com</td></tr>
+        <tr><td>Intercom</td><td>Canlı destek widget</td><td>intercom.com/privacy</td></tr>
+        <tr><td>Sentry</td><td>Hata izleme ve raporlama</td><td>sentry.io/privacy</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-section" id="c4">
+      <div class="ds-num">Bölüm 05</div>
+      <h2 class="ds-heading">Tarayıcı Üzerinden Çerez Yönetimi</h2>
+      <p class="ds-p">Aşağıdaki tarayıcı ayarlarından çerezleri yönetebilirsiniz. Zorunlu çerezleri silmeniz oturum açma işlevini bozabilir.</p>
+      <table class="data-table">
+        <tr><th>Tarayıcı</th><th>Ayarlar Yolu</th></tr>
+        <tr><td>Chrome</td><td>Ayarlar → Gizlilik ve Güvenlik → Çerezler</td></tr>
+        <tr><td>Firefox</td><td>Seçenekler → Gizlilik ve Güvenlik → Çerezler</td></tr>
+        <tr><td>Safari</td><td>Tercihler → Gizlilik → Çerezleri Yönet</td></tr>
+        <tr><td>Edge</td><td>Ayarlar → Gizlilik, Arama ve Hizmetler → Çerezler</td></tr>
+        <tr><td>Opera</td><td>Ayarlar → Gelişmiş → Gizlilik ve Güvenlik → Site Ayarları → Çerezler</td></tr>
+        <tr><td>Samsung Internet</td><td>Menü → Ayarlar → Gizlilik ve Güvenlik → Çerezleri ve Site Verilerini Yönet</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-section" id="c5"><span id="c6" style="display:block;margin-top:-70px;padding-top:70px;"></span>
+      <div class="ds-num">Bölüm 06</div>
+      <h2 class="ds-heading">İletişim</h2>
+      <p class="ds-p">Çerez politikasına ilişkin sorularınız için <strong>privacy [at] omnidea.io</strong> adresine yazabilirsiniz.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     GÜVENLİK
+══════════════════════════════ -->
+<div class="panel" id="panel-security">
+  <div class="doc-nav">
+    <span class="dn-label">İçindekiler</span>
+    <div class="dn-item dn-active" onclick="goTo('s1')">1. Güvenlik Felsefemiz</div>
+    <div class="dn-item" onclick="goTo('s2')">2. Teknik Önlemler</div>
+    <div class="dn-item sub" onclick="goTo('s2a')">2.1 Şifreleme</div>
+    <div class="dn-item sub" onclick="goTo('s2b')">2.2 Kimlik Doğrulama</div>
+    <div class="dn-item sub" onclick="goTo('s2c')">2.3 Altyapı</div>
+    <div class="dn-item" onclick="goTo('s3')">3. Veri Güvenliği</div>
+    <div class="dn-item" onclick="goTo('s4')">4. Ödeme & Escrow Güvenliği</div>
+    <div class="dn-item" onclick="goTo('s5')">5. Güvenlik Açığı Bildirimi</div>
+    <div class="dn-item" onclick="goTo('s6')">6. Olay Müdahale Planı</div>
+    <div class="dn-item" onclick="goTo('s7')">7. Uyumluluk & Sertifikalar</div>
+    <div class="dn-item" onclick="goTo('s8')">8. Güvenlik İletişim</div>
+    <div class="dn-divider"></div>
+    <div class="doc-update"><div class="du-label">Son Güncelleme</div><div class="du-date">16 Mart 2025</div></div>
+  </div>
+  <div class="doc-content">
+    <div class="doc-header">
+      <div class="doc-tag">Hukuki Belgeler</div>
+      <h1 class="doc-title">Güvenlik</h1>
+      <div class="doc-version">Sürüm <span>2.0</span> · Güncelleme: <span>16 Mart 2025</span></div>
+      <div class="doc-summary">
+        <div class="ds-title">Güvenlik Taahhüdümüz</div>
+        <p class="ds-text">Tasarımlarınız, ödeme bilgileriniz ve kişisel verileriniz en yüksek güvenlik standartlarıyla korunmaktadır. Güvenlik, OMNIDEA'nın temel tasarım prensibidir.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="s1">
+      <div class="ds-num">Bölüm 01</div>
+      <h2 class="ds-heading">Güvenlik Felsefemiz</h2>
+      <p class="ds-p">OMNIDEA'da güvenlik <strong>"güvenli tasarım" (security by design)</strong> prensibiyle inşa edilmiştir. Her özellik, her API ve her veri akışı geliştirilme aşamasında güvenlik denetimiyle birlikte ele alınır.</p>
+      <div class="security-grid">
+        <div class="sec-badge"><div class="sb-icon">🔐</div><div><div class="sb-name">Uçtan Uca Şifreleme</div><div class="sb-desc">Tüm iletişim TLS 1.3 ile şifrelenir</div><div class="sb-status">Aktif</div></div></div>
+        <div class="sec-badge"><div class="sb-icon">🛡</div><div><div class="sb-name">DDoS Koruması</div><div class="sb-desc">Cloudflare Enterprise katmanı</div><div class="sb-status">Aktif</div></div></div>
+        <div class="sec-badge"><div class="sb-icon">🔑</div><div><div class="sb-name">Çok Faktörlü Kimlik</div><div class="sb-desc">TOTP, SMS ve donanım anahtarı desteği</div><div class="sb-status">Aktif</div></div></div>
+        <div class="sec-badge"><div class="sb-icon">🔍</div><div><div class="sb-name">Sızma Testleri</div><div class="sb-desc">Yılda 2 kez bağımsız penetrasyon testi</div><div class="sb-status">Son Test: Ocak 2025</div></div></div>
+        <div class="sec-badge"><div class="sb-icon">📊</div><div><div class="sb-name">7/24 Güvenlik İzleme</div><div class="sb-desc">SIEM sistemi ile anlık anomali tespiti</div><div class="sb-status">Aktif</div></div></div>
+        <div class="sec-badge"><div class="sb-icon">💾</div><div><div class="sb-name">Yedekleme Sistemi</div><div class="sb-desc">Günlük tam yedek, 30 gün saklanır</div><div class="sb-status">Aktif</div></div></div>
+      </div>
+    </div>
+
+    <div class="doc-section" id="s2">
+      <div class="ds-num">Bölüm 02</div>
+      <h2 class="ds-heading">Teknik Güvenlik Önlemleri</h2>
+      <h3 class="ds-subheading" id="s2a">2.1 Şifreleme Standartları</h3>
+      <table class="data-table">
+        <tr><th>Veri Kategorisi</th><th>Yöntem</th><th>Standart</th></tr>
+        <tr><td>İletim Şifrelemesi</td><td>TLS 1.3 (minimum)</td><td>NIST SP 800-52</td></tr>
+        <tr><td>Depolama Şifrelemesi</td><td>AES-256-GCM</td><td>FIPS 140-2</td></tr>
+        <tr><td>Şifre Hashleme</td><td>bcrypt (salt=12)</td><td>OWASP</td></tr>
+        <tr><td>API Anahtarları</td><td>HMAC-SHA256</td><td>RFC 2104</td></tr>
+        <tr><td>Dosya Depolama</td><td>AWS S3 SSE-KMS</td><td>AES-256</td></tr>
+        <tr><td>Veritabanı</td><td>PostgreSQL pgcrypto</td><td>AES-256</td></tr>
+      </table>
+      <h3 class="ds-subheading" id="s2b">2.2 Kimlik Doğrulama</h3>
+      <ul class="ds-list">
+        <li><strong>Parola politikası:</strong> Minimum 8 karakter, büyük/küçük harf ve özel karakter zorunluluğu</li>
+        <li><strong>MFA:</strong> Google Authenticator, SMS veya FIDO2 donanım anahtarı</li>
+        <li><strong>Oturum yönetimi:</strong> JWT + refresh token, 30 dk aktif / 7 gün refresh süresi</li>
+        <li><strong>Brute force koruması:</strong> 5 başarısız girişten sonra 15 dakika hesap kilidi</li>
+        <li><strong>Şüpheli giriş bildirimi:</strong> Farklı IP veya coğrafyadan girişte e-posta uyarısı</li>
+      </ul>
+      <h3 class="ds-subheading" id="s2c">2.3 Altyapı Güvenliği</h3>
+      <ul class="ds-list">
+        <li><strong>Ağ segmentasyonu:</strong> Üretim, test ve geliştirme ortamları fiziksel olarak ayrılmış</li>
+        <li><strong>WAF:</strong> SQL injection, XSS ve CSRF saldırılarına karşı koruma</li>
+        <li><strong>Container güvenliği:</strong> Tüm servisler izole Docker konteynerlerde çalışır</li>
+        <li><strong>Sıfır güven mimarisi:</strong> Servisler arası iletişimde mTLS zorunluluğu</li>
+        <li><strong>Güvenlik taramaları:</strong> Her deploy öncesi otomatik SAST ve DAST taraması</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="s3">
+      <div class="ds-num">Bölüm 04</div>
+      <h2 class="ds-heading">Ödeme ve Escrow Güvenliği</h2>
+      <div class="highlight-box hb-success">
+        <span class="hb-icon">💳</span>
+        <p class="hb-text"><strong>PCI DSS Seviye 1 Uyumu:</strong> OMNIDEA kart verilerini doğrudan işlemez. Tüm ödeme işlemleri Stripe'ın PCI DSS Seviye 1 sertifikalı altyapısı üzerinden yürütülür.</p>
+      </div>
+      <ul class="ds-list">
+        <li><strong>Tokenizasyon:</strong> Kart bilgileri Stripe'ta şifrelenmiş token olarak saklanır</li>
+        <li><strong>3D Secure 2.0:</strong> Yüksek değerli işlemler için güçlü müşteri doğrulaması</li>
+        <li><strong>Dolandırıcılık tespiti:</strong> ML tabanlı anomali sistemi şüpheli işlemleri bloke eder</li>
+        <li><strong>Escrow yalıtımı:</strong> Escrow hesabı işletme hesaplarından tamamen ayrıdır</li>
+        <li><strong>Çift onay:</strong> Büyük tutarlı escrow işlemleri iki yetkilinin onayını gerektirir</li>
+      </ul>
+    </div>
+
+    <div class="doc-section" id="s4">
+      <div class="ds-num">Bölüm 05</div>
+      <h2 class="ds-heading">Güvenlik Açığı Bildirimi — Bug Bounty</h2>
+      <p class="ds-p">Tespit ettiğiniz güvenlik açıklarını <strong>security [at] omnidea.io</strong> adresine bildirin.</p>
+      <div class="vuln-steps">
+        <div class="vs-item"><div class="vs-num">1</div><div><div class="vs-title">Açığı Bize Gönderin</div><div class="vs-text">PGP şifreli e-posta gönderin. Açığın nasıl tetiklendiğini, potansiyel etkisini ve varsa PoC kodunu ekleyin.</div></div></div>
+        <div class="vs-item"><div class="vs-num">2</div><div><div class="vs-title">48 Saat İçinde Yanıt</div><div class="vs-text">Güvenlik ekibimiz bildirimi 48 saat içinde teyit eder ve ön değerlendirme yapar.</div></div></div>
+        <div class="vs-item"><div class="vs-num">3</div><div><div class="vs-title">Koordineli Kamuoyu Açıklaması</div><div class="vs-text">Açık düzeltilmeden önce kamuoyuna ifşa edilmemesini talep ederiz. Yama sonrası birlikte açıklama yapılır.</div></div></div>
+        <div class="vs-item"><div class="vs-num">4</div><div><div class="vs-title">Ödül — Bug Bounty</div><div class="vs-text">Geçerli raporlar için önem derecesine göre $100 ile $5.000 arasında ödül verilir. Hall of Fame'de adınız yer alır.</div></div></div>
+      </div>
+      <div class="highlight-box hb-warn">
+        <span class="hb-icon">⚠</span>
+        <p class="hb-text"><strong>Kapsam Dışı:</strong> Sosyal mühendislik, fiziksel güvenlik testleri, DoS/DDoS denemeleri ve gerçek kullanıcı verisine erişim içeren testler kapsam dışındadır.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="s5">
+      <div class="ds-num">Bölüm 06</div>
+      <h2 class="ds-heading">Güvenlik Olayı Müdahale Planı</h2>
+      <table class="data-table">
+        <tr><th>Süre</th><th>Aksiyon</th></tr>
+        <tr><td>0–1 saat</td><td>Olayın tespiti ve ilk kontrol</td></tr>
+        <tr><td>1–4 saat</td><td>Kapsamın belirlenmesi, etkilenen sistemlerin izolasyonu</td></tr>
+        <tr><td>4–24 saat</td><td>Açığın kapatılması, forensik analiz</td></tr>
+        <tr><td>24–72 saat</td><td>Etkilenen kullanıcılara bildirim, KVKK/GDPR zorunlu bildirim</td></tr>
+        <tr><td>72 saat+</td><td>Kapsamlı olay raporu, önleyici tedbirler, kamuoyu açıklaması</td></tr>
+      </table>
+      <div class="highlight-box hb-info">
+        <span class="hb-icon">◈</span>
+        <p class="hb-text">GDPR Madde 33 ve KVKK kapsamında, kişisel veri ihlali tespit edilmesinden itibaren <strong>72 saat</strong> içinde yetkili veri koruma otoritelerine bildirim yapılır.</p>
+      </div>
+    </div>
+
+    <div class="doc-section" id="s6">
+      <div class="ds-num">Bölüm 07</div>
+      <h2 class="ds-heading">Uyumluluk ve Sertifikalar</h2>
+      <table class="data-table">
+        <tr><th>Standart</th><th>Durum</th><th>Kapsam</th></tr>
+        <tr><td>GDPR (AB Veri Koruma)</td><td style="color:var(--success);">✓ Uyumlu</td><td>Tüm AB kullanıcıları</td></tr>
+        <tr><td>KVKK (Türk Veri Koruma)</td><td style="color:var(--success);">✓ Uyumlu</td><td>Türkiye kullanıcıları</td></tr>
+        <tr><td>PCI DSS Seviye 1</td><td style="color:var(--success);">✓ Stripe üzerinden</td><td>Tüm ödeme işlemleri</td></tr>
+        <tr><td>ISO 27001</td><td style="color:var(--warn);">⏳ Süreçte</td><td>2025 Q3 hedefi</td></tr>
+        <tr><td>SOC 2 Type II</td><td style="color:var(--warn);">⏳ Süreçte</td><td>2025 Q4 hedefi</td></tr>
+        <tr><td>OWASP Top 10</td><td style="color:var(--success);">✓ Uyumlu</td><td>Tüm web uygulaması</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-section" id="s7"><span id="s8" style="display:block;margin-top:-70px;padding-top:70px;"></span>
+      <div class="ds-num">Bölüm 08</div>
+      <h2 class="ds-heading">Güvenlik İletişim</h2>
+      <div class="contact-grid">
+        <div class="contact-card"><div class="cc-icon">🔐</div><div class="cc-title">Güvenlik Açığı Bildirimi</div><div class="cc-sub">Bug bounty ve etik hacking</div><div class="cc-email">security [at] omnidea.io</div></div>
+        <div class="contact-card"><div class="cc-icon">🚨</div><div class="cc-title">Acil Güvenlik Hattı</div><div class="cc-sub">Aktif tehdit ve ihlal bildirimi</div><div class="cc-email">incident [at] omnidea.io</div></div>
+        <div class="contact-card"><div class="cc-icon">🔑</div><div class="cc-title">PGP Açık Anahtar</div><div class="cc-sub">Şifreli iletişim için</div><div class="cc-email" onclick="toast('info','PGP','PGP anahtar dosyası indiriliyor...')">omnidea-pgp-key.asc ↓</div></div>
+        <div class="contact-card"><div class="cc-icon">📋</div><div class="cc-title">Uyumluluk</div><div class="cc-sub">GDPR ve KVKK bildirimleri</div><div class="cc-email">compliance [at] omnidea.io</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ts-stack" id="ts"></div>
+
+<script>
+// CURSOR
+const cur = document.getElementById('cursor');
+const crn = document.getElementById('cring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', function(e) {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = (mx - 3.5) + 'px';
+  cur.style.top = (my - 3.5) + 'px';
+});
+
+(function animRing() {
+  rx += (mx - rx) * 0.12;
+  ry += (my - ry) * 0.12;
+  crn.style.left = (rx - 14) + 'px';
+  crn.style.top = (ry - 14) + 'px';
+  requestAnimationFrame(animRing);
+})();
+
+document.addEventListener('mouseover', function(e) {
+  if (e.target.closest('button, a, .contact-card, .sec-badge, .right-item, .ct-row, .vs-item')) {
+    cur.style.transform = 'scale(1.8)';
+    crn.style.transform = 'scale(1.3)';
+    crn.style.borderColor = 'rgba(201,168,76,0.6)';
+  }
+});
+document.addEventListener('mouseout', function(e) {
+  if (e.target.closest('button, a, .contact-card, .sec-badge, .right-item, .ct-row, .vs-item')) {
+    cur.style.transform = 'scale(1)';
+    crn.style.transform = 'scale(1)';
+    crn.style.borderColor = 'rgba(201,168,76,0.3)';
+  }
+});
+
+// PANEL SWITCH
+function switchDoc(doc, btn) {
+  document.querySelectorAll('.panel').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.querySelectorAll('.tnav-item').forEach(function(el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('panel-' + doc).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// SCROLL TO SECTION
+function goTo(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+
+  // span anchor ise üst doc-section'a scroll et
+  var scrollTarget = el;
+  if (el.tagName === 'SPAN') {
+    var parent = el.closest('.doc-section');
+    if (parent) scrollTarget = parent;
+  }
+  scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Aktif panel içindeki tüm dn-item'lardan dn-active'i kaldır
+  var activePanel = document.querySelector('.panel.active');
+  if (activePanel) {
+    activePanel.querySelectorAll('.dn-item').forEach(function(item) {
+      item.classList.remove('dn-active');
+    });
+    // Tıklanan id ile eşleşen dn-item'ı aktif yap
+    activePanel.querySelectorAll('.dn-item[onclick]').forEach(function(item) {
+      var oc = item.getAttribute('onclick') || '';
+      if (oc === "goTo('" + id + "')") {
+        item.classList.add('dn-active');
+      }
+    });
+  }
+}
+
+// READING PROGRESS
+document.addEventListener('scroll', function() {
+  var scrolled = window.scrollY;
+  var total = document.body.scrollHeight - window.innerHeight;
+  var pct = total > 0 ? (scrolled / total) * 100 : 0;
+  var fill = document.getElementById('rpFill');
+  if (fill) fill.style.width = pct + '%';
+});
+
+// COOKIE TOGGLE
+function toggleCookie(btn) {
+  if (btn.classList.contains('ts-disabled')) return;
+  if (btn.classList.contains('ts-on')) {
+    btn.classList.remove('ts-on');
+    btn.classList.add('ts-off');
+  } else {
+    btn.classList.remove('ts-off');
+    btn.classList.add('ts-on');
+  }
+}
+
+function saveCookiePrefs() {
+  toast('ok', 'Tercihler Kaydedildi', 'Çerez tercihleriniz güncellendi. Değişiklikler hemen geçerli olur.');
+}
+
+// TOAST
+function toast(type, title, msg) {
+  var s = document.getElementById('ts');
+  var icons = { ok: '✦', info: '◈', warn: '◎' };
+  var t = document.createElement('div');
+  t.className = 'tt tt-' + type;
+  t.innerHTML = '<div style="font-size:0.8rem;flex-shrink:0;">' + (icons[type] || '◈') + '</div>'
+    + '<div class="tt-b"><div class="tt-t">' + title + '</div><div class="tt-m">' + msg + '</div></div>'
+    + '<button class="tt-c" onclick="this.parentElement.remove()">✕</button>';
+  s.appendChild(t);
+  setTimeout(function() { if (t.parentElement) t.remove(); }, 5000);
+}
+
+// INIT
+setTimeout(function() {
+  toast('info', 'Hukuki Belgeler', 'Gizlilik Politikası yüklendi. Son güncelleme: 16 Mart 2025');
+}, 700);
+</script>
+</body>
+</html>

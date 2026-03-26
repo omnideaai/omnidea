@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Üretici Profili</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;--gold-dim:#8A6E2F;
+  --bg:#080808;--bg2:#0F0F0F;--bg3:#161616;--bg4:#1E1E1E;--bg5:#242424;
+  --text:#F0EDE6;--text2:#A09A8E;--text3:#5A554E;
+  --border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.07);
+  --success:#4CAF7D;--error:#E05555;--info:#4A9ECA;--warn:#E8A23A;
+}
+html,body{min-height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);cursor: default;}
+.cursor{width:7px;height:7px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transition:transform 0.1s;}
+.cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transition:all 0.12s;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;background:rgba(8,8,8,0.92);border-bottom:0.5px solid var(--border2);padding:0;backdrop-filter:blur(16px);height:48px;}
+.tlogo{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;letter-spacing:0.08em;color:var(--text);padding:0 1.2rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;}
+.tlogo span{color:var(--gold);}
+.tbread{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);padding:0 1rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;gap:0.4rem;}
+.tbread b{color:var(--gold);}
+.tsearch{flex:1;display:flex;align-items:center;gap:0.5rem;padding:0 1rem;border-right:0.5px solid var(--border2);height:100%;}
+.tsearch input{background:none;border:none;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);outline:none;width:100%;cursor: pointer;}
+.tsearch input::placeholder{color:var(--text3);}
+.tr{display:flex;align-items:center;gap:0.6rem;padding:0 1rem;height:100%;}
+.tb{font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:2px;border:none;cursor: pointer;transition:all 0.2s;}
+.tb-g{background:none;color:var(--text2);border:0.5px solid var(--border2);}
+.tb-g:hover{border-color:var(--border);color:var(--text);}
+.tb-gold{background:var(--gold);color:var(--bg);}
+.tb-gold:hover{background:var(--gold-light);}
+.av{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:var(--gold);}
+
+/* HERO COVER */
+.profile-hero{
+  position:relative;height:220px;
+  background:var(--bg2);border-bottom:0.5px solid var(--border2);
+  overflow:hidden;
+}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.03) 1px,transparent 1px);background-size:60px 60px;}
+.hero-glow{position:absolute;width:700px;height:400px;background:radial-gradient(ellipse,rgba(201,168,76,0.07) 0%,transparent 70%);top:50%;left:40%;transform:translate(-50%,-50%);pointer-events:none;}
+.hero-badges{position:absolute;top:1.2rem;right:1.5rem;display:flex;gap:0.4rem;}
+.hero-badge{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;padding:3px 8px;border-radius:2px;border:0.5px solid;}
+.hb-verified{background:rgba(201,168,76,0.1);border-color:var(--border);color:var(--gold);}
+.hb-iso{background:rgba(76,175,125,0.08);border-color:rgba(76,175,125,0.2);color:var(--success);}
+.hb-top{background:rgba(224,85,85,0.08);border-color:rgba(224,85,85,0.2);color:var(--error);}
+
+/* PROFILE CARD */
+.profile-card-wrap{max-width:1100px;margin:0 auto;padding:0 2rem;}
+.profile-card-floating{
+  display:flex;align-items:flex-end;gap:1.5rem;
+  margin-top:-48px;position:relative;z-index:10;
+  padding-bottom:1.2rem;border-bottom:0.5px solid var(--border2);
+}
+.producer-avatar{
+  width:96px;height:96px;border-radius:4px;
+  background:rgba(201,168,76,0.12);border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);
+  flex-shrink:0;position:relative;
+}
+.avatar-online{position:absolute;bottom:4px;right:4px;width:12px;height:12px;border-radius:50%;background:var(--success);border:2px solid var(--bg2);}
+.producer-info{flex:1;}
+.producer-name{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--text);line-height:1.1;margin-bottom:0.3rem;}
+.producer-tagline{font-size:0.85rem;color:var(--text2);font-weight:300;margin-bottom:0.5rem;}
+.producer-meta{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;}
+.pm-item{display:flex;align-items:center;gap:0.3rem;font-size:0.72rem;color:var(--text3);}
+.pm-icon{font-size:0.8rem;}
+.star-row{display:flex;align-items:center;gap:0.4rem;}
+.stars{color:var(--gold);font-size:0.85rem;letter-spacing:1px;}
+.star-val{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--gold);}
+.star-count{font-size:0.7rem;color:var(--text3);}
+.profile-actions{display:flex;gap:0.5rem;flex-shrink:0;align-items:center;}
+
+/* MAIN LAYOUT */
+.profile-layout{max-width:1100px;margin:0 auto;padding:1.5rem 2rem 3rem;display:grid;grid-template-columns:1fr 320px;gap:1.2rem;align-items:start;}
+
+/* TABS */
+.profile-tabs{display:flex;gap:0;border-bottom:0.5px solid var(--border2);margin-bottom:1.2rem;}
+.ptab{padding:0.65rem 1.2rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.ptab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.ptab:hover:not(.active){color:var(--text2);}
+
+/* CONTENT SECTIONS */
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ABOUT */
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem;}
+.about-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.8rem 1rem;}
+.ac-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.3rem;}
+.ac-val{font-size:0.82rem;color:var(--text);font-weight:500;}
+.bio-text{font-size:0.82rem;color:var(--text2);line-height:1.75;background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:1rem;margin-bottom:1rem;}
+.sector-tags{display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:1rem;}
+.stag{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.07em;padding:4px 10px;border-radius:2px;border:0.5px solid var(--border);color:var(--text2);background:var(--bg3);}
+.stag.primary{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06);}
+.cert-list{display:flex;flex-direction:column;gap:0.4rem;}
+.cert-item{display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0.8rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;}
+.cert-ico{font-size:1rem;}
+.cert-info{flex:1;}
+.cert-name{font-size:0.78rem;font-weight:500;color:var(--text);}
+.cert-sub{font-size:0.62rem;color:var(--text3);}
+.cert-badge{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;padding:2px 6px;border-radius:2px;background:rgba(76,175,125,0.1);color:var(--success);}
+
+/* PORTFOLIO */
+.work-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;}
+.work-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;overflow:hidden;cursor: pointer;transition:all 0.2s;}
+.work-card:hover{border-color:var(--border);transform:translateY(-2px);}
+.work-thumb{height:110px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:2.2rem;position:relative;}
+.work-thumb::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(8,8,8,0.6) 100%);}
+.work-body{padding:0.6rem 0.8rem;}
+.work-name{font-size:0.75rem;font-weight:500;color:var(--text);margin-bottom:2px;}
+.work-meta{font-size:0.62rem;color:var(--text3);}
+.work-rating{font-size:0.62rem;color:var(--gold);margin-top:3px;}
+
+/* ══ REVIEWS ══ */
+.reviews-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.rh-left{}
+.rh-score{font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;color:var(--gold);line-height:1;}
+.rh-stars{color:var(--gold);font-size:1rem;letter-spacing:2px;margin-top:0.2rem;}
+.rh-count{font-size:0.72rem;color:var(--text3);margin-top:0.2rem;}
+.rating-bars{display:flex;flex-direction:column;gap:0.35rem;margin-left:2rem;flex:1;}
+.rb-row{display:flex;align-items:center;gap:0.6rem;}
+.rb-label{font-size:0.65rem;color:var(--text3);width:12px;text-align:right;flex-shrink:0;}
+.rb-track{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.rb-fill{height:100%;border-radius:2px;background:var(--gold);transition:width 1s ease;}
+.rb-pct{font-size:0.62rem;color:var(--text3);width:28px;text-align:right;}
+.reviews-filter{display:flex;gap:0.3rem;margin-bottom:1rem;}
+.rf{font-size:0.65rem;letter-spacing:0.05em;text-transform:uppercase;padding:3px 10px;border-radius:2px;border:0.5px solid var(--border2);color:var(--text3);background:none;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.rf:hover{border-color:var(--border);color:var(--text2);}
+.rf.rfa{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06);}
+.review-list{display:flex;flex-direction:column;gap:0.6rem;}
+.review-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1rem 1.2rem;transition:border-color 0.15s;}
+.review-card:hover{border-color:var(--border);}
+.rc-top{display:flex;align-items:flex-start;gap:0.8rem;margin-bottom:0.6rem;}
+.rc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;flex-shrink:0;}
+.rc-info{flex:1;}
+.rc-name{font-size:0.8rem;font-weight:500;color:var(--text);}
+.rc-project{font-size:0.65rem;color:var(--text3);margin-top:1px;}
+.rc-right{text-align:right;}
+.rc-stars{color:var(--gold);font-size:0.8rem;letter-spacing:1px;}
+.rc-date{font-size:0.62rem;color:var(--text3);margin-top:2px;}
+.rc-verified{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--success);margin-top:2px;}
+.rc-text{font-size:0.78rem;color:var(--text2);line-height:1.65;margin-bottom:0.6rem;}
+.rc-tags{display:flex;gap:0.3rem;flex-wrap:wrap;}
+.rc-tag{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em;padding:2px 6px;border-radius:2px;background:var(--bg3);color:var(--text3);border:0.5px solid var(--border2);}
+.rc-helpful{display:flex;align-items:center;gap:0.5rem;margin-top:0.6rem;padding-top:0.6rem;border-top:0.5px solid var(--border2);}
+.rc-helpful-label{font-size:0.65rem;color:var(--text3);}
+.rc-helpful-btn{font-size:0.65rem;padding:2px 8px;border-radius:2px;border:0.5px solid var(--border2);background:none;color:var(--text3);cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;}
+.rc-helpful-btn:hover{border-color:var(--border);color:var(--text);}
+.rc-helpful-btn.voted{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.06);}
+
+/* WRITE REVIEW */
+.write-review{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.2rem;margin-top:1rem;}
+.wr-title{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:0.8rem;}
+.star-select{display:flex;gap:0.3rem;margin-bottom:0.8rem;}
+.star-btn{font-size:1.3rem;background:none;border:none;cursor: pointer;color:var(--text3);transition:all 0.15s;line-height:1;}
+.star-btn.lit{color:var(--gold);}
+.star-btn:hover{transform:scale(1.2);}
+.review-cats{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.8rem;}
+.rc-slider{display:flex;flex-direction:column;gap:0.2rem;}
+.rc-slider label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);display:flex;justify-content:space-between;}
+.rc-slider label span{color:var(--gold);}
+input[type=range].rslider{width:100%;appearance:none;height:2px;background:var(--border2);border-radius:2px;outline:none;cursor: pointer;}
+input[type=range].rslider::-webkit-slider-thumb{appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);cursor: pointer;border:2px solid var(--bg3);}
+.review-textarea{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.7rem 0.9rem;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);resize:none;outline:none;cursor: pointer;min-height:80px;line-height:1.6;transition:border-color 0.15s;margin-bottom:0.8rem;}
+.review-textarea:focus{border-color:var(--border);}
+.review-textarea::placeholder{color:var(--text3);}
+.review-submit-row{display:flex;align-items:center;justify-content:space-between;}
+.char-count{font-size:0.65rem;color:var(--text3);}
+.submit-review-btn{padding:0.5rem 1.2rem;background:var(--gold);border:none;border-radius:2px;font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;}
+.submit-review-btn:hover{background:var(--gold-light);}
+
+/* RIGHT SIDEBAR */
+.sidebar-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1rem 1.1rem;margin-bottom:0.75rem;}
+.sc-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;color:var(--text);margin-bottom:0.7rem;padding-bottom:0.5rem;border-bottom:0.5px solid var(--border2);}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+.sg-item{background:var(--bg3);border-radius:3px;padding:0.55rem 0.7rem;text-align:center;}
+.sg-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);line-height:1;}
+.sg-val span{color:var(--gold);}
+.sg-label{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-top:2px;}
+.skill-list{display:flex;flex-direction:column;gap:0.4rem;}
+.skill-row{display:flex;align-items:center;gap:0.5rem;}
+.skill-name{font-size:0.72rem;color:var(--text2);width:90px;flex-shrink:0;}
+.skill-bar{flex:1;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.skill-fill{height:100%;border-radius:2px;background:var(--gold);transition:width 1s ease;}
+.skill-pct{font-size:0.62rem;color:var(--text3);width:28px;text-align:right;}
+.avail-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;}
+.avail-label{font-size:0.72rem;color:var(--text2);}
+.avail-val{font-size:0.72rem;font-weight:500;color:var(--text);}
+.avail-val.green{color:var(--success);}
+.avail-val.gold{color:var(--gold);}
+.contact-btns{display:flex;flex-direction:column;gap:0.4rem;}
+.cb{width:100%;padding:0.55rem;border-radius:3px;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;cursor: pointer;transition:all 0.2s;border:0.5px solid;}
+.cb-gold{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+.cb-gold:hover{background:var(--gold-light);}
+.cb-ghost{background:none;border-color:var(--border2);color:var(--text2);}
+.cb-ghost:hover{border-color:var(--border);color:var(--text);}
+.similar-list{display:flex;flex-direction:column;gap:0.4rem;}
+.sim-item{display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.6rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;cursor: pointer;transition:all 0.15s;}
+.sim-item:hover{border-color:var(--border);}
+.sim-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:600;flex-shrink:0;}
+.sim-info{flex:1;}
+.sim-name{font-size:0.72rem;font-weight:500;color:var(--text);}
+.sim-loc{font-size:0.6rem;color:var(--text3);}
+.sim-stars{font-size:0.6rem;color:var(--gold);}
+
+/* TOAST */
+.ts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;width:300px;}
+.tt{display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:3px;border:0.5px solid;pointer-events:all;animation:tIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;}
+.tt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.tt-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);}
+.tt-ok::before{background:var(--success);}
+.tt-info{background:rgba(74,158,202,0.1);border-color:rgba(74,158,202,0.25);}
+.tt-info::before{background:var(--info);}
+.tt-warn{background:rgba(232,162,58,0.1);border-color:rgba(232,162,58,0.25);}
+.tt-warn::before{background:var(--warn);}
+.tt-b{flex:1;}
+.tt-t{font-size:0.73rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.tt-m{font-size:0.66rem;color:var(--text2);line-height:1.4;}
+.tt-c{background:none;border:none;color:var(--text3);font-size:0.72rem;cursor: pointer;padding:0;}
+@keyframes tIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
+
+/* SECTION TITLE */
+.section-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);margin-bottom:0.6rem;display:flex;align-items:center;gap:0.6rem;}
+.section-label::after{content:'';flex:1;height:0.5px;background:var(--border2);}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ── Supabase Yapılandırması ─────────────────────────────────────────────
+  // Supabase Dashboard > Settings > API'dan kendi değerlerinle değiştir:
+  const SUPABASE_URL = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+
+  // Demo modu koruması: URL hâlâ placeholder ise sayfayı kırmadan çalıştır
+  const SUPABASE_READY = !SUPABASE_URL.includes('jucamvtjstmdyynyeyap') && !SUPABASE_KEY.includes('ANON_PUBLIC');
+
+  const _demoSession = {
+    user: { id: 'demo-user', email: 'demo@omnidea.app',
+            user_metadata: { full_name: 'Demo Kullanıcı', api_key: 'demo1234' } }
+  };
+  const _demoProfile = { full_name: 'Demo Kullanıcı', plan: 'pro', credits: 100, avatar_url: null };
+
+  const sb = SUPABASE_READY
+    ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : {
+        auth: {
+          getSession:          async () => ({ data: { session: _demoSession }, error: null }),
+          getUser:             async () => ({ data: { user: _demoSession.user }, error: null }),
+          signOut:             async () => {},
+          updateUser:          async () => ({ data: null, error: null }),
+          onAuthStateChange:   ()       => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signInWithPassword:  async () => ({ data: null, error: { message: 'Demo modunda giriş yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signUp:              async () => ({ data: null, error: { message: 'Demo modunda kayıt yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signInWithOAuth:     async () => ({ data: null, error: null }),
+          resetPasswordForEmail: async () => ({ data: null, error: null }),
+        },
+        from: (table) => {
+          const _q = {
+            data: null, _filters: [],
+            select: function()  { return this; },
+            insert: async function() { return { data: { id: 'demo-' + Date.now() }, error: null }; },
+            update: function()  { return this; },
+            delete: function()  { return this; },
+            eq:     function()  { return this; },
+            neq:    function()  { return this; },
+            in:     function()  { return this; },
+            is:     function()  { return this; },
+            ilike:  function()  { return this; },
+            contains: function(){ return this; },
+            order:  function()  { return this; },
+            limit:  function()  { return this; },
+            then:   function(fn){ return Promise.resolve({ data: [], error: null, count: 0 }).then(fn); },
+            single: async function() {
+              if (table === 'profiles') return { data: _demoProfile, error: null };
+              return { data: null, error: null };
+            },
+          };
+          return _q;
+        },
+        channel:       () => ({ on: function(){ return this; }, subscribe: function(){ return this; }, send: async function(){} }),
+        removeChannel: () => {},
+        storage:       { from: () => ({ upload: async () => ({ data: null, error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }), remove: async () => ({}) }) },
+      };
+
+  if (!SUPABASE_READY) {
+    console.warn('[OMNIDEA] ⚠ Demo modu — Supabase bağlantısı yapılandırılmamış.');
+    console.warn('[OMNIDEA] SUPABASE_URL ve SUPABASE_KEY değerlerini Supabase Dashboard > Settings > API\'dan alın.');
+  }
+</script>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tlogo">OMNI<span>IDEA</span></div>
+  <div class="tbread">Pazar Yeri <b>/ Üretici Profili</b></div>
+  <div class="tsearch"><span style="color:var(--text3);font-size:0.8rem;">◎</span><input type="text" placeholder="Üretici, sektör veya hizmet ara..."></div>
+  <div class="tr">
+    <button class="tb tb-g" onclick="window.location.href='4-omnidea-market-entegre.html'">← Pazar Yeri</button>
+    <button class="tb tb-gold" onclick="toast('ok','Teklif İsteği Gönderildi','Artisan Furniture Co. bilgilendirildi.')">Teklif Al</button>
+    <div class="av">HB</div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="profile-hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-badges">
+    <span class="hero-badge hb-top">🔥 Top Üretici</span>
+    <span class="hero-badge hb-verified">✦ Doğrulanmış</span>
+    <span class="hero-badge hb-iso">ISO 9001</span>
+  </div>
+</div>
+
+<!-- PROFILE CARD -->
+<div class="profile-card-wrap">
+  <div class="profile-card-floating">
+    <div class="producer-avatar">
+      AF
+      <div class="avatar-online"></div>
+    </div>
+    <div class="producer-info">
+      <div class="producer-name">Artisan Furniture Co.</div>
+      <div class="producer-tagline">Premium mobilya & endüstriyel imalat · 15 yıllık deneyim</div>
+      <div class="producer-meta">
+        <div class="pm-item"><span class="pm-icon">📍</span> İstanbul, Türkiye</div>
+        <div class="pm-item"><span class="pm-icon">⚡</span> Ortalama yanıt: 2 saat</div>
+        <div class="pm-item"><span class="pm-icon">📦</span> 247 tamamlanan iş</div>
+        <div class="pm-item"><span class="pm-icon">👥</span> 1.200+ tasarımcı</div>
+        <div class="star-row">
+          <span class="stars">★★★★★</span>
+          <span class="star-val">4.9</span>
+          <span class="star-count">(128 değerlendirme)</span>
+        </div>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="tb tb-g" onclick="toast('info','Mesaj','Sohbet başlatılıyor...')">💬 Mesaj Gönder</button>
+      <button class="tb tb-g" onclick="toggleFollow(this)">☆ Takip Et</button>
+      <button class="tb tb-gold" onclick="toast('ok','Teklif İsteği','Artisan Furniture Co. bilgilendirildi.')">Teklif Al ✦</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="profile-layout">
+
+  <!-- LEFT MAIN -->
+  <div>
+    <!-- TABS -->
+    <div class="profile-tabs">
+      <button class="ptab active" onclick="switchTab('about',this)">Hakkında</button>
+      <button class="ptab" onclick="switchTab('portfolio',this)">Portföy</button>
+      <button class="ptab" onclick="switchTab('reviews',this)">Değerlendirmeler <span style="color:var(--gold);font-size:0.7rem;">(128)</span></button>
+      <button class="ptab" onclick="switchTab('certifications',this)">Sertifikalar</button>
+    </div>
+
+    <!-- ABOUT TAB -->
+    <div class="tab-content active" id="tab-about">
+      <div class="section-label">Firma Bilgileri</div>
+      <div class="about-grid">
+        <div class="about-card"><div class="ac-label">Kuruluş Yılı</div><div class="ac-val">2009</div></div>
+        <div class="about-card"><div class="ac-label">Çalışan Sayısı</div><div class="ac-val">45–60</div></div>
+        <div class="about-card"><div class="ac-label">Minimum Sipariş</div><div class="ac-val">Tekil üretim kabul</div></div>
+        <div class="about-card"><div class="ac-label">Ortalama Teslim</div><div class="ac-val">14–21 gün</div></div>
+        <div class="about-card"><div class="ac-label">Üretim Kapasitesi</div><div class="ac-val">Aylık 500+ parça</div></div>
+        <div class="about-card"><div class="ac-label">İhracat</div><div class="ac-val">30+ ülke</div></div>
+      </div>
+
+      <div class="section-label">Hakkında</div>
+      <div class="bio-text">
+        Artisan Furniture Co. olarak 2009'dan bu yana premium mobilya ve endüstriyel parça üretimi yapıyoruz. İstanbul merkezli atölyemizde CNC işleme, ahşap oyma, metal döküm ve kumaş döşeme alanlarında uzmanlaşmış ekibimizle hizmet veriyoruz.<br><br>
+        OMNIDEA platformuna 2024'te katıldık ve bugüne kadar 247 projeyi başarıyla tamamladık. Tasarımcıların vizyonunu üretime dönüştürmek için DXF, STL ve PDF formatlarındaki tüm teknik dosyaları işleyebiliyoruz. Smart Constraints uyarılarını üretim sürecine entegre ederek sıfır hata oranını hedefliyoruz.
+      </div>
+
+      <div class="section-label">Uzmanlık Alanları</div>
+      <div class="sector-tags">
+        <span class="stag primary">Mobilya</span>
+        <span class="stag primary">Ahşap İşleme</span>
+        <span class="stag primary">Metal Döşeme</span>
+        <span class="stag">Endüstriyel Parça</span>
+        <span class="stag">CNC İşleme</span>
+        <span class="stag">Kumaş Döşeme</span>
+        <span class="stag">Boya & Kaplama</span>
+        <span class="stag">Paslanmaz Çelik</span>
+        <span class="stag">RAL Renk Sistemi</span>
+      </div>
+
+      <div class="section-label">Son İşler</div>
+      <div class="work-grid" id="workGrid"></div>
+    </div>
+
+    <!-- PORTFOLIO TAB -->
+    <div class="tab-content" id="tab-portfolio">
+      <div class="section-label">Tamamlanan Projeler (247)</div>
+      <div class="work-grid" id="portfolioWorkGrid"></div>
+      <div style="margin-top:1rem;text-align:center;">
+        <button class="tb tb-g" onclick="toast('info','Yükleniyor','Daha fazla proje yükleniyor...')">Daha Fazla Yükle</button>
+      </div>
+    </div>
+
+    <!-- REVIEWS TAB -->
+    <div class="tab-content" id="tab-reviews">
+
+      <!-- RATING OVERVIEW -->
+      <div style="display:flex;align-items:center;gap:1.5rem;background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.2rem 1.4rem;margin-bottom:1rem;">
+        <div>
+          <div class="rh-score">4.9</div>
+          <div class="rh-stars">★★★★★</div>
+          <div class="rh-count">128 değerlendirme</div>
+        </div>
+        <div class="rating-bars">
+          <div class="rb-row"><span class="rb-label">5</span><div class="rb-track"><div class="rb-fill" style="width:84%;"></div></div><span class="rb-pct">84%</span></div>
+          <div class="rb-row"><span class="rb-label">4</span><div class="rb-track"><div class="rb-fill" style="width:11%;"></div></div><span class="rb-pct">11%</span></div>
+          <div class="rb-row"><span class="rb-label">3</span><div class="rb-track"><div class="rb-fill" style="width:3%;"></div></div><span class="rb-pct">3%</span></div>
+          <div class="rb-row"><span class="rb-label">2</span><div class="rb-track"><div class="rb-fill" style="width:1%;"></div></div><span class="rb-pct">1%</span></div>
+          <div class="rb-row"><span class="rb-label">1</span><div class="rb-track"><div class="rb-fill" style="width:1%;"></div></div><span class="rb-pct">1%</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;min-width:200px;">
+          <div style="background:var(--bg3);border-radius:3px;padding:0.5rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--gold);">4.9</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-top:2px;">Kalite</div></div>
+          <div style="background:var(--bg3);border-radius:3px;padding:0.5rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--gold);">4.8</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-top:2px;">Teslimat</div></div>
+          <div style="background:var(--bg3);border-radius:3px;padding:0.5rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--gold);">5.0</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-top:2px;">İletişim</div></div>
+          <div style="background:var(--bg3);border-radius:3px;padding:0.5rem 0.7rem;text-align:center;"><div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--gold);">4.7</div><div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);margin-top:2px;">Fiyat/Perf.</div></div>
+        </div>
+      </div>
+
+      <div class="reviews-filter">
+        <button class="rf rfa" onclick="rfFilter(this)">Tümü</button>
+        <button class="rf" onclick="rfFilter(this)">5 Yıldız</button>
+        <button class="rf" onclick="rfFilter(this)">4 Yıldız</button>
+        <button class="rf" onclick="rfFilter(this)">Fotoğraflı</button>
+        <button class="rf" onclick="rfFilter(this)">Doğrulanmış</button>
+      </div>
+
+      <div class="review-list" id="reviewList"></div>
+
+      <!-- WRITE REVIEW -->
+      <div class="write-review" id="writeReview">
+        <div class="wr-title">Değerlendirme Yaz</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin-bottom:0.5rem;">Genel Puan</div>
+        <div class="star-select" id="starSelect">
+          <button class="star-btn" onclick="rateStar(1)">★</button>
+          <button class="star-btn" onclick="rateStar(2)">★</button>
+          <button class="star-btn" onclick="rateStar(3)">★</button>
+          <button class="star-btn" onclick="rateStar(4)">★</button>
+          <button class="star-btn" onclick="rateStar(5)">★</button>
+        </div>
+        <div class="review-cats">
+          <div class="rc-slider">
+            <label>Kalite <span id="rv-kalite">5</span></label>
+            <input type="range" class="rslider" min="1" max="5" value="5" oninput="document.getElementById('rv-kalite').textContent=this.value">
+          </div>
+          <div class="rc-slider">
+            <label>Teslimat <span id="rv-teslimat">5</span></label>
+            <input type="range" class="rslider" min="1" max="5" value="5" oninput="document.getElementById('rv-teslimat').textContent=this.value">
+          </div>
+          <div class="rc-slider">
+            <label>İletişim <span id="rv-iletisim">5</span></label>
+            <input type="range" class="rslider" min="1" max="5" value="5" oninput="document.getElementById('rv-iletisim').textContent=this.value">
+          </div>
+          <div class="rc-slider">
+            <label>Fiyat/Perf. <span id="rv-fiyat">4</span></label>
+            <input type="range" class="rslider" min="1" max="5" value="4" oninput="document.getElementById('rv-fiyat').textContent=this.value">
+          </div>
+        </div>
+        <textarea class="review-textarea" placeholder="Deneyiminizi paylaşın. Ürün kalitesi, teslimat süreci, iletişim... Diğer tasarımcılara yardımcı olacak detayları ekleyin." maxlength="600" oninput="document.getElementById('rvCharCount').textContent=this.value.length+'/600'"></textarea>
+        <div class="review-submit-row">
+          <span class="char-count" id="rvCharCount">0/600</span>
+          <button class="submit-review-btn" onclick="submitReview()">Değerlendirme Gönder ✦</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CERTIFICATIONS TAB -->
+    <div class="tab-content" id="tab-certifications">
+      <div class="section-label">Sertifikalar & Belgeler</div>
+      <div class="cert-list">
+        <div class="cert-item"><span class="cert-ico">🏆</span><div class="cert-info"><div class="cert-name">ISO 9001:2015 — Kalite Yönetim Sistemi</div><div class="cert-sub">Bureau Veritas · Son yenileme: Mart 2024</div></div><span class="cert-badge">Geçerli</span></div>
+        <div class="cert-item"><span class="cert-ico">🌿</span><div class="cert-info"><div class="cert-name">FSC Sertifikası — Sürdürülebilir Orman Ürünleri</div><div class="cert-sub">Forest Stewardship Council · 2023</div></div><span class="cert-badge">Geçerli</span></div>
+        <div class="cert-item"><span class="cert-ico">🔒</span><div class="cert-info"><div class="cert-name">OMNIDEA Doğrulanmış Üretici</div><div class="cert-sub">Platform doğrulama · 128 başarılı sipariş</div></div><span class="cert-badge">Aktif</span></div>
+        <div class="cert-item"><span class="cert-ico">⚙️</span><div class="cert-info"><div class="cert-name">CE Uygunluk Belgesi — Mobilya & Metal İmalat</div><div class="cert-sub">Avrupa Birliği standartları · 2022</div></div><span class="cert-badge">Geçerli</span></div>
+        <div class="cert-item"><span class="cert-ico">🏭</span><div class="cert-info"><div class="cert-name">İSO 45001 — İş Sağlığı & Güvenliği</div><div class="cert-sub">TÜV Rheinland · 2024</div></div><span class="cert-badge">Geçerli</span></div>
+        <div class="cert-item"><span class="cert-ico">📋</span><div class="cert-info"><div class="cert-name">TSE — Türk Standartları Enstitüsü Belgesi</div><div class="cert-sub">Mobilya üretim standartları · TS 4082</div></div><span class="cert-badge">Geçerli</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div>
+    <!-- STATS -->
+    <div class="sidebar-card">
+      <div class="sc-title" style="cursor:pointer;" onclick="(function(el){var body=el.nextElementSibling;if(body)body.style.display=body.style.display==='none'?'':' '.trim()==='none'?'':' none';})(this)">Platform İstatistikleri ▾</div>
+      <div class="stat-grid">
+        <div class="sg-item"><div class="sg-val">247</div><div class="sg-label">Tamamlanan</div></div>
+        <div class="sg-item"><div class="sg-val"><span>4.9</span>★</div><div class="sg-label">Ortalama Puan</div></div>
+        <div class="sg-item"><div class="sg-val">98<span>%</span></div><div class="sg-label">Başarı Oranı</div></div>
+        <div class="sg-item"><div class="sg-val">2<span>saat</span></div><div class="sg-label">Yanıt Süresi</div></div>
+        <div class="sg-item"><div class="sg-val">30<span>+</span></div><div class="sg-label">İhracat Ülkesi</div></div>
+        <div class="sg-item"><div class="sg-val">1.2<span>K</span></div><div class="sg-label">Tasarımcı</div></div>
+      </div>
+    </div>
+
+    <!-- AVAILABILITY -->
+    <div class="sidebar-card">
+      <div class="sc-title" style="cursor:pointer;" onclick="(function(el){var body=el.nextElementSibling;if(body)body.style.display=body.style.display==='none'?'':' none';})(this)">Müsaitlik & Kapasite ▾</div>
+      <div class="avail-row"><span class="avail-label">Durum</span><span class="avail-val green">● Aktif — Sipariş Alıyor</span></div>
+      <div class="avail-row"><span class="avail-label">Bu Hafta Slot</span><span class="avail-val gold">3 müsait</span></div>
+      <div class="avail-row"><span class="avail-label">En Erken Başlangıç</span><span class="avail-val">Yarın</span></div>
+      <div class="avail-row"><span class="avail-label">Maks. Günlük İş</span><span class="avail-val">5 proje</span></div>
+      <div class="avail-row"><span class="avail-label">Min. Bütçe</span><span class="avail-val">$300</span></div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="sidebar-card">
+      <div class="sc-title" style="cursor:pointer;" onclick="(function(el){var body=el.nextElementSibling;if(body)body.style.display=body.style.display==='none'?'':' none';})(this)">Üretim Becerileri ▾</div>
+      <div class="skill-list">
+        <div class="skill-row"><span class="skill-name">Ahşap İşleme</span><div class="skill-bar"><div class="skill-fill" style="width:98%;"></div></div><span class="skill-pct">98</span></div>
+        <div class="skill-row"><span class="skill-name">Metal Döşeme</span><div class="skill-bar"><div class="skill-fill" style="width:90%;"></div></div><span class="skill-pct">90</span></div>
+        <div class="skill-row"><span class="skill-name">CNC İşleme</span><div class="skill-bar"><div class="skill-fill" style="width:95%;"></div></div><span class="skill-pct">95</span></div>
+        <div class="skill-row"><span class="skill-name">Boya & Kaplama</span><div class="skill-bar"><div class="skill-fill" style="width:88%;"></div></div><span class="skill-pct">88</span></div>
+        <div class="skill-row"><span class="skill-name">DXF/STL İşleme</span><div class="skill-bar"><div class="skill-fill" style="width:100%;"></div></div><span class="skill-pct">100</span></div>
+        <div class="skill-row"><span class="skill-name">Kalite Kontrol</span><div class="skill-bar"><div class="skill-fill" style="width:97%;"></div></div><span class="skill-pct">97</span></div>
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="sidebar-card">
+      <div class="sc-title">İletişim</div>
+      <div class="contact-btns">
+        <button class="cb cb-gold" onclick="toast('ok','Mesaj Gönderildi','Artisan Furniture Co. ile sohbet başlatıldı.')">💬 Mesaj Gönder</button>
+        <button class="cb cb-ghost" onclick="toast('info','Teklif İsteği','Teklif formu açılıyor...')">✦ Teklif İste</button>
+        <button class="cb cb-ghost" onclick="toast('info','Kaydedildi','Üretici favorilerinize eklendi.')">☆ Favorilere Ekle</button>
+        <button class="cb cb-ghost" onclick="toast('warn','Şikayet','Şikayet formu açılıyor...')">⚑ Şikayet Et</button>
+      </div>
+    </div>
+
+    <!-- SIMILAR -->
+    <div class="sidebar-card">
+      <div class="sc-title">Benzer Üreticiler</div>
+      <div class="similar-list" id="similarList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="ts" id="ts"></div>
+
+<script>
+// CURSOR
+const cur=document.getElementById('cursor'),crn=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx-3.5+'px';cur.style.top=my-3.5+'px';});
+(function aR(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;crn.style.left=rx-14+'px';crn.style.top=ry-14+'px';requestAnimationFrame(aR);})();
+document.addEventListener('mouseover',e=>{if(e.target.closest('button,a,.work-card,.review-card,.cert-item,.sim-item,.ptab')){{cur.style.transform='scale(1.8)';crn.style.transform='scale(1.3)';crn.style.borderColor='rgba(201,168,76,0.6)';}}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('button,a,.work-card,.review-card,.cert-item,.sim-item,.ptab')){{cur.style.transform='scale(1)';crn.style.transform='scale(1)';crn.style.borderColor='rgba(201,168,76,0.3)';}}});
+
+// TAB SWITCH
+function switchTab(t,btn){
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  btn.classList.add('active');
+}
+
+// WORKS DATA
+const WORKS=[
+  {ico:'🪑',name:'Chesterfield Koltuk',meta:'Mobilya · 2025',rating:'5.0'},
+  {ico:'🪵',name:'Ceviz Yemek Masası',meta:'Mobilya · 2025',rating:'4.9'},
+  {ico:'🔩',name:'CNC Metal Parça Seti',meta:'Endüstriyel · 2024',rating:'5.0'},
+  {ico:'🛋',name:'Üç Kişilik Kanepe',meta:'Mobilya · 2024',rating:'4.8'},
+  {ico:'🚪',name:'Ahşap Panel Kapı',meta:'İnşaat · 2024',rating:'5.0'},
+  {ico:'⚙️',name:'Paslanmaz Vida Grubu',meta:'Endüstriyel · 2024',rating:'4.9'},
+];
+function renderWorks(containerId){
+  const g=document.getElementById(containerId);if(!g)return;g.innerHTML='';
+  WORKS.forEach(w=>{
+    const c=document.createElement('div');c.className='work-card';
+    c.innerHTML=`<div class="work-thumb">${w.ico}</div><div class="work-body"><div class="work-name">${w.name}</div><div class="work-meta">${w.meta}</div><div class="work-rating">★ ${w.rating}</div></div>`;
+    g.appendChild(c);
+  });
+}
+
+// REVIEWS DATA
+const REVIEWS=[
+  {av:'HB',clr:'#C9A84C',name:'Hasan Bey',project:'Berjer Koltuk v3',stars:5,date:'15 Mar 2025',verified:true,text:'Mükemmel bir deneyimdi. Tasarım dosyalarımı eksiksiz okudu, Smart Constraints uyarılarına harfiyen uydu. Velvet kumaş ve paslanmaz çelik kombinasyonu tam istediğim gibi çıktı. RAL 8016 renk kodu sapmasız uygulandı. 18 günde teslim sözünü tuttu, hatta 2 gün erken geldi. Kesinlikle tekrar çalışacağım.',tags:['Zamanında Teslimat','Yüksek Kalite','İyi İletişim'],helpful:24,voted:false},
+  {av:'AK',clr:'#9B59B6',name:'Ayşe Kaya',project:'Gold Yüzük Serisi',stars:5,date:'10 Mar 2025',verified:true,text:'Takı alanında bu kadar titiz çalışan bir üretici bulmak zor. 10K altın ve 925 gümüş işçiliği parmak izi hassasiyetinde teslim edildi. Teknik çizimden ürüne geçişte sıfır hata. Fiyat performans açısından da çok tatmin edici.',tags:['Hassas İşçilik','Zamanında','Kaliteli Malzeme'],helpful:18,voted:false},
+  {av:'CA',clr:'#4A9ECA',name:'Can Aydın',project:'Endüstriyel Vida Seti',stars:5,date:'5 Mar 2025',verified:true,text:'500 adetlik vida setini tam tolerans değerlerinde ürettiler. ISO sertifikasının gerçekten bir farkı var — her parça ölçü kontrollü. Seri üretim konusunda çok güvenilir bir firma. Ayrıca STL ve DXF dosyalarını anında işleyebildiler, ekstra bilgi istemedi hiç.',tags:['Seri Üretim','ISO Standart','Hızlı Başlangıç'],helpful:31,voted:false},
+  {av:'ZY',clr:'#4CAF7D',name:'Zeynep Yıldız',project:'Araç Jant Kapağı',stars:4,date:'28 Şub 2025',verified:true,text:'Genel olarak çok memnunum. Tek küçük sorun, renk tonunun ilk numune ile son ürün arasında hafif farklılık göstermesiydi. Hızla düzeltildi ve özür dilediler. Bunun dışında iletişim ve işçilik mükemmeldi.',tags:['İyi İletişim','Hızlı Düzeltme'],helpful:9,voted:false},
+  {av:'BA',clr:'#E8A23A',name:'Berk Arslan',project:'Ofis Koltuk x5',stars:5,date:'22 Şub 2025',verified:true,text:'5 adet ofis koltuğunu standart üstü bir kalitede teslim ettiler. Kumaş seçimi, ahşap rengi, metal ayaklar — her şey not ettiğimiz gibi yapıldı. Teslimattan sonra da takip ettiler. Bu platform üzerinden çalışmak çok pratik.',tags:['Toplu Sipariş','Kaliteli','Takip'],helpful:15,voted:false},
+];
+function renderReviews(){
+  const l=document.getElementById('reviewList');if(!l)return;l.innerHTML='';
+  REVIEWS.forEach((r,i)=>{
+    const stars='★'.repeat(r.stars)+'☆'.repeat(5-r.stars);
+    const c=document.createElement('div');c.className='review-card';
+    c.innerHTML=`
+      <div class="rc-top">
+        <div class="rc-av" style="background:${r.clr}22;color:${r.clr};border:0.5px solid ${r.clr}44;">${r.av}</div>
+        <div class="rc-info"><div class="rc-name">${r.name}</div><div class="rc-project">${r.project}</div></div>
+        <div class="rc-right">
+          <div class="rc-stars">${stars}</div>
+          <div class="rc-date">${r.date}</div>
+          ${r.verified?'<div class="rc-verified">✓ Doğrulanmış Satın Alma</div>':''}
+        </div>
+      </div>
+      <div class="rc-text">${r.text}</div>
+      <div class="rc-tags">${r.tags.map(t=>`<span class="rc-tag">${t}</span>`).join('')}</div>
+      <div class="rc-helpful">
+        <span class="rc-helpful-label">Faydalı mıydı? (${r.helpful})</span>
+        <button class="rc-helpful-btn ${r.voted?'voted':''}" onclick="voteHelpful(${i},this)">👍 Evet</button>
+        <button class="rc-helpful-btn" onclick="toast('info','Bildirim','Yorum bildirildi.')">⚑ Bildir</button>
+      </div>`;
+    l.appendChild(c);
+  });
+}
+function voteHelpful(i,btn){
+  if(REVIEWS[i].voted)return;
+  REVIEWS[i].voted=true;
+  REVIEWS[i].helpful++;
+  btn.classList.add('voted');
+  btn.textContent='👍 Evet ('+REVIEWS[i].helpful+')';
+}
+
+// SIMILAR PRODUCERS
+const SIMILAR=[
+  {av:'KM',clr:'#4CAF7D',name:'Konya Mobilya A.Ş.',loc:'Konya, TR',stars:'4.3'},
+  {av:'AB',clr:'#4A9ECA',name:'Ankara Bis. Çelik',loc:'Ankara, TR',stars:'4.6'},
+  {av:'MF',clr:'#9B59B6',name:'Milano Furniture',loc:'Milano, IT',stars:'4.8'},
+];
+function renderSimilar(){
+  const l=document.getElementById('similarList');if(!l)return;l.innerHTML='';
+  SIMILAR.forEach(s=>{
+    const d=document.createElement('div');d.className='sim-item';
+    d.innerHTML=`<div class="sim-av" style="background:${s.clr}22;color:${s.clr};border:0.5px solid ${s.clr}44;">${s.av}</div><div class="sim-info"><div class="sim-name">${s.name}</div><div class="sim-loc">${s.loc}</div></div><div class="sim-stars">★ ${s.stars}</div>`;
+    d.onclick=()=>toast('info','Profil',''+s.name+' profili yükleniyor...');
+    l.appendChild(d);
+  });
+}
+
+// STAR RATING
+let selectedStar=0;
+function rateStar(n){
+  selectedStar=n;
+  document.querySelectorAll('.star-btn').forEach((b,i)=>{
+    b.classList.toggle('lit',i<n);
+  });
+}
+
+// REVIEW FILTER
+function rfFilter(el){document.querySelectorAll('.rf').forEach(f=>f.classList.remove('rfa'));el.classList.add('rfa');}
+
+// SUBMIT REVIEW
+function submitReview(){
+  if(!selectedStar){toast('warn','Puan Eksik','Lütfen yıldız puanı seçin.');return;}
+  const txt=document.querySelector('.review-textarea').value.trim();
+  if(txt.length<10){toast('warn','Yorum Kısa','En az 10 karakter yazın.');return;}
+  toast('ok','Değerlendirme Gönderildi','Teşekkürler! Değerlendirmeniz yayınlandı.');
+  document.querySelector('.review-textarea').value='';
+  selectedStar=0;
+  document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('lit'));
+}
+
+// FOLLOW
+function toggleFollow(btn){
+  const following=btn.textContent.includes('Takipten');
+  btn.textContent=following?'☆ Takip Et':'★ Takipten Çık';
+  toast(following?'info':'ok',following?'Takip Bırakıldı':'Takip Edildi',following?'Artisan Furniture Co. takipten çıkarıldı.':'Yeni ilanlarında bildirim alacaksın.');
+}
+
+// TOAST
+function toast(type,title,msg){
+  const s=document.getElementById('ts');
+  const icons={ok:'✦',info:'◈',warn:'◎'};
+  const t=document.createElement('div');
+  t.className='tt tt-'+type;
+  t.innerHTML=`<div style="font-size:0.8rem;flex-shrink:0;">${icons[type]||'◈'}</div><div class="tt-b"><div class="tt-t">${title}</div><div class="tt-m">${msg}</div></div><button class="tt-c" onclick="this.parentElement.remove()">✕</button>`;
+  s.appendChild(t);setTimeout(()=>t.remove&&t.remove(),5000);
+}
+
+// ── SUPABASE ENTEGRASYONu ────────────────────────────────────────────────────
+
+// URL'den üretici ID'sini oku: producer.html?id=xxx
+// Yoksa kendi profilini göster
+async function initProducer() {
+  let session = null; try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) { console.warn("[OMNIDEA] getSession hatası:", e.message); }
+  if (!session && SUPABASE_READY) { window.location.href = '2-omnidea-auth-GİRİS.html'; return; } else if (!session) { console.warn('[OMNIDEA] Demo mod: oturum yok ama sayfa açıldı'); }
+
+  const params      = new URLSearchParams(window.location.search);
+  const producerId  = params.get('id') || session.user.id;
+  const isOwnProfile = producerId === session.user.id;
+
+  // Profil bilgisi
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', producerId)
+    .single();
+
+  if (profile) {
+    document.querySelectorAll('.producer-name, .pname').forEach(el => {
+      el.textContent = profile.full_name || 'Üretici';
+    });
+  }
+
+  // DB'deki tamamlanmış projeleri çek (üreticinin işleri)
+  const { data: projects } = await sb
+    .from('projects')
+    .select('id, title, status, data, created_at')
+    .eq('user_id', producerId)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(12);
+
+  if (projects && projects.length) {
+    WORKS.length = 0;
+    projects.forEach(p => {
+      WORKS.push({
+        ico:    p.data?.icon   || '◈',
+        name:   p.title,
+        meta:   (p.data?.sector || 'Genel') + ' · ' + new Date(p.created_at).getFullYear(),
+        rating: (p.data?.rating || 5.0).toFixed(1),
+      });
+    });
+  }
+
+  renderWorks('workGrid');
+  renderWorks('portfolioWorkGrid');
+  renderReviews();   // Yorumlar ileride listings/reviews tablosundan çekilecek
+  renderSimilar();   // Benzer üreticiler ileride query ile dolacak
+
+  if (isOwnProfile) {
+    toast('ok', 'Kendi Profilin', 'Düzenlemek için sağ paneli kullan.');
+  } else {
+    toast('info', 'Üretici Profili', (profile?.full_name || 'Üretici') + ' profili yüklendi.');
+  }
+}
+
+// Yorum gönder — Supabase'e kaydet
+async function submitReview() {
+  if (!selectedStar) { toast('warn','Puan Eksik','Lütfen yıldız puanı seçin.'); return; }
+  const txt = document.querySelector('.review-textarea')?.value?.trim() || '';
+  if (txt.length < 10) { toast('warn','Yorum Kısa','En az 10 karakter yazın.'); return; }
+
+  let session = null; try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) { console.warn("[OMNIDEA] getSession hatası:", e.message); }
+  if (!session) { toast('warn','Giriş Gerekli','Yorum yapabilmek için giriş yap.'); return; }
+
+  const params     = new URLSearchParams(window.location.search);
+  const producerId = params.get('id');
+
+  // listings_reviews tablosu varsa ekle, yoksa notifications ile bildir
+  const { error } = await sb.from('notifications').insert({
+    user_id: producerId || session.user.id,
+    type:    'comment',
+    title:   'Yeni Değerlendirme',
+    body:    `${selectedStar} yıldız: ${txt.slice(0,80)}`,
+    data:    { stars: selectedStar, reviewer_id: session.user.id },
+  });
+
+  if (error) { toast('warn','Hata',error.message); return; }
+
+  toast('ok','Değerlendirme Gönderildi','Teşekkürler! Değerlendirmeniz yayınlandı.');
+  if (document.querySelector('.review-textarea')) document.querySelector('.review-textarea').value = '';
+  selectedStar = 0;
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('lit'));
+
+  // Yeni yorumu listeye ekle
+  REVIEWS.unshift({
+    av: (session.user.email || 'K')[0].toUpperCase() + ((session.user.email || 'K')[1] || '').toUpperCase(),
+    clr: '#C9A84C', name: session.user.user_metadata?.full_name || 'Kullanıcı',
+    project: '—', stars: selectedStar, date: 'Şimdi', verified: true, text: txt, tags: [], helpful: 0, voted: false,
+  });
+  renderReviews();
+}
+
+// INIT
+initProducer();
+</script>
+</body>
+</html>
