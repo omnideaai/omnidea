@@ -366,7 +366,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
         </div>
       </div>
       <div class="av-wrap">
-        <div class="av" id="avatarBtn" onclick="toggleProfile()" id="avatarInitials">?</div>
+        <div class="av" id="avatarBtn" onclick="toggleProfile()">?</div>
         <div class="profile-dropdown" id="profileDropdown">
           <div class="pd-user"><div class="pd-name" id="pdName">Yükleniyor...</div><div class="pd-role" id="pdRole">Tasarımcı · Free</div></div>
           <div class="pd-item" onclick="switchView('profile')"><span class="pd-item-icon">👤</span> Profilim</div>
@@ -798,7 +798,7 @@ async function loadProfile(userId) {
   const planBadge = document.querySelector('.plan-badge');
   if (planBadge) planBadge.textContent = (profile.plan || 'free').toUpperCase();
 
-  toast('ok', \`Hoş Geldin, \${firstName}!\`, 'Günlük özetin hazır.');
+  toast('ok', 'Hoş Geldin, ' + firstName + '!', 'Günlük özetin hazır.');
 }
 
 // Bildirimleri Supabase'den çek
