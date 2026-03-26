@@ -548,7 +548,7 @@ html,body { height:100%; font-family:'DM Sans',sans-serif; background:var(--bg);
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
 
   // Demo modu koruması: URL hâlâ placeholder ise sayfayı kırmadan çalıştır
-  const SUPABASE_READY = !SUPABASE_URL.includes('jucamvtjstmdyynyeyap') && !SUPABASE_KEY.includes('ANON_PUBLIC');
+  const SUPABASE_READY = true; // Gerçek değerler yüklendi
 
   const _demoSession = {
     user: { id: 'demo-user', email: 'demo@omnidea.app',
@@ -1521,7 +1521,7 @@ document.getElementById('view3d').style.display = 'flex';
 (async () => {
   let session = null;
   try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) {}
-  if (!session && SUPABASE_READY) { window.location.href = '2-omnidea-auth-GİRİS.html'; return; }
+  if (!session && SUPABASE_READY) { window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html'; return; }
   loadProjects();
   setTimeout(() => showToast('error','Kritik: Montaj Noktası','2 vida bu boyut için yetersiz. 4 vida önerilir.','Zeka Sekmesini Aç',()=>switchRTab('zeka')), 1800);
   setTimeout(() => showToast('warn','Malzeme Uyarısı','Köpük yoğunluğu belirtilmemiş. Üretici için gerekli.','Detayları Gör',()=>switchRTab('zeka')), 3200);
