@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#080808;display:flex;align-items:center;justify-content:center;height:100vh;}
+  .logo{font-family:sans-serif;font-size:1.4rem;font-weight:800;letter-spacing:0.1em;color:#F0EDE6;text-align:center;}
+  .logo span{color:#C9A84C;}
+  .dot{width:6px;height:6px;background:#C9A84C;border-radius:50%;margin:1rem auto 0;animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div>
+  <div class="logo">OMNI<span>IDEA</span></div>
+  <div class="dot"></div>
+</div>
+<script>
+(async function() {
+  try {
+    var sb = supabase.createClient(
+      'https://jucamvtjstmdyynyeyap.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg'
+    );
+    var r = await sb.auth.getSession();
+    if (r.data && r.data.session) {
+      window.location.replace('5-omnidea-dashboard-entegre.html');
+    } else {
+      window.location.replace('1-omnidea-landing-entegre.html');
+    }
+  } catch(e) {
+    window.location.replace('1-omnidea-landing-entegre.html');
+  }
+})();
+</script>
+</body>
+</html>
