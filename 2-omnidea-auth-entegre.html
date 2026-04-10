@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Giriş Yap / Kayıt Ol</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ── Supabase Bağlantısı ──────────────────────────────────────────────────
+  // Supabase Dashboard > Settings > API'dan al
+  const SUPABASE_URL  = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Hata mesajlarını Türkçeleştir
+  function trErr(msg) {
+    const map = {
+      'Invalid login credentials':   'E-posta veya şifre hatalı.',
+      'Email not confirmed':          'E-postanızı doğrulayın. Gelen kutunuzu kontrol edin.',
+      'User already registered':      'Bu e-posta adresi zaten kayıtlı.',
+      'Password should be at least':  'Şifre en az 8 karakter olmalıdır.',
+      'Email rate limit exceeded':    'Çok fazla deneme. Lütfen bekleyin.',
+    };
+    for (const [k, v] of Object.entries(map)) {
+      if (msg.includes(k)) return v;
+    }
+    return msg;
+  }
+</script>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --gold: #C9A84C;
+    --gold-light: #E8C97A;
+    --gold-dim: #8A6E2F;
+    --bg: #080808;
+    --bg2: #0F0F0F;
+    --bg3: #161616;
+    --bg4: #1E1E1E;
+    --text: #F0EDE6;
+    --text2: #A09A8E;
+    --text3: #5A554E;
+    --border: rgba(201,168,76,0.18);
+    --border2: rgba(201,168,76,0.08);
+    --error: #E05555;
+    --success: #4CAF7D;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    cursor: default;
+  }
+
+  /* CURSOR */
+  .cursor { width: 8px; height: 8px; background: var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; transition: transform 0.1s ease; }
+  .cursor-ring { width: 32px; height: 32px; border: 1px solid rgba(201,168,76,0.35); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; transition: all 0.15s ease; }
+
+  /* LAYOUT */
+  .page {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    position: relative;
+    background: var(--bg2);
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 2.5rem 3.5rem;
+    border-right: 0.5px solid var(--border2);
+    overflow: hidden;
+  }
+  .left-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .left-glow {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(201,168,76,0.07) 0%, transparent 65%);
+    top: 50%; left: 30%; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .left-top {
+    position: relative; z-index: 1;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem; font-weight: 800;
+    letter-spacing: 0.08em; color: var(--text);
+    text-decoration: none;
+  }
+  .logo span { color: var(--gold); }
+  .back-link {
+    font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text3); text-decoration: none;
+    display: flex; align-items: center; gap: 0.5rem;
+    transition: color 0.2s; cursor: pointer;
+  }
+  .back-link:hover { color: var(--gold); }
+
+  .left-middle {
+    position: relative; z-index: 1;
+  }
+  .left-tag {
+    font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 0.8rem;
+  }
+  .left-tag::before { content: ''; width: 20px; height: 0.5px; background: var(--gold); }
+  .left-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.02em; color: var(--text);
+  }
+  .left-title em { font-style: normal; color: var(--gold); }
+  .left-sub {
+    font-size: 0.9rem; color: var(--text2); font-weight: 300;
+    line-height: 1.7; margin-top: 1.2rem; max-width: 380px;
+  }
+
+  /* STATS ROW */
+  .left-stats {
+    position: relative; z-index: 1;
+    display: flex; gap: 0;
+    border-top: 0.5px solid var(--border2);
+    padding-top: 2rem;
+  }
+  .left-stat {
+    flex: 1; padding-right: 2rem;
+    border-right: 0.5px solid var(--border2);
+    margin-right: 2rem;
+  }
+  .left-stat:last-child { border-right: none; margin-right: 0; }
+  .left-stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem; font-weight: 700; color: var(--text); line-height: 1;
+  }
+  .left-stat-num span { color: var(--gold); }
+  .left-stat-label { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.3rem; }
+
+  /* FLOATING CARDS */
+  .float-card {
+    position: absolute; z-index: 2;
+    background: var(--bg3); border: 0.5px solid var(--border);
+    border-radius: 6px; padding: 0.9rem 1.1rem;
+    animation: float 4s ease-in-out infinite;
+  }
+  .float-card-1 { top: 28%; right: 8%; animation-delay: 0s; }
+  .float-card-2 { top: 52%; right: 5%; animation-delay: 1.5s; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  .fc-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 0.4rem; }
+  .fc-value { font-family: 'Syne', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--text); }
+  .fc-value span { color: var(--gold); }
+  .fc-row { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.3rem; }
+  .fc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+  .fc-dot-w { background: var(--gold); }
+  .fc-small { font-size: 0.72rem; color: var(--text2); }
+
+  /* RIGHT PANEL — FORM */
+  .right-panel {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 2.5rem;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .form-box {
+    width: 100%; max-width: 420px;
+  }
+
+  /* TAB TOGGLE */
+  .auth-tabs {
+    display: flex; background: var(--bg3);
+    border: 0.5px solid var(--border2);
+    border-radius: 4px; padding: 4px;
+    margin-bottom: 2.5rem;
+  }
+  .auth-tab {
+    flex: 1; padding: 0.6rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--text3); background: none; border: none;
+    border-radius: 3px; cursor: pointer;
+    transition: all 0.25s;
+  }
+  .auth-tab.active {
+    background: var(--gold); color: var(--bg);
+    font-weight: 500;
+  }
+
+  /* ROLE SELECT — only on register */
+  .role-select {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0.75rem; margin-bottom: 1.8rem;
+  }
+  .role-card {
+    border: 0.5px solid var(--border2);
+    border-radius: 4px; padding: 1.2rem 1rem;
+    cursor: pointer; transition: all 0.2s;
+    background: var(--bg3);
+    position: relative; overflow: hidden;
+  }
+  .role-card:hover { border-color: var(--border); background: var(--bg4); }
+  .role-card.selected {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.06);
+  }
+  .role-card.selected::before {
+    content: '✦';
+    position: absolute; top: 0.5rem; right: 0.6rem;
+    font-size: 0.6rem; color: var(--gold);
+  }
+  .role-icon { font-size: 1.3rem; margin-bottom: 0.6rem; }
+  .role-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem; font-weight: 600; color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+  .role-desc { font-size: 0.72rem; color: var(--text3); line-height: 1.4; }
+
+  /* FORM TITLE */
+  .form-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--text); margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+  .form-sub {
+    font-size: 0.85rem; color: var(--text2); font-weight: 300;
+    margin-bottom: 2rem; line-height: 1.5;
+  }
+  .form-sub a { color: var(--gold); text-decoration: none; cursor: pointer; }
+
+  /* INPUTS */
+  .field { margin-bottom: 1.2rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  label {
+    display: block;
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 0.5rem;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  select {
+    width: 100%; background: var(--bg3);
+    border: 0.5px solid var(--border2);
+    border-radius: 3px; padding: 0.75rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; color: var(--text);
+    outline: none; transition: border-color 0.2s;
+    cursor: default; appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--gold); }
+  input::placeholder { color: var(--text3); }
+  select option { background: var(--bg3); color: var(--text); }
+
+  /* PASSWORD FIELD */
+  .pass-wrap { position: relative; }
+  .pass-wrap input { padding-right: 3rem; }
+  .pass-toggle {
+    position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text3);
+    font-size: 0.75rem; cursor: pointer; letter-spacing: 0.05em;
+    text-transform: uppercase; transition: color 0.2s;
+  }
+  .pass-toggle:hover { color: var(--gold); }
+
+  /* STRENGTH BAR */
+  .strength-bar {
+    display: flex; gap: 4px; margin-top: 0.5rem;
+  }
+  .strength-seg {
+    height: 2px; flex: 1; background: var(--border2);
+    border-radius: 2px; transition: background 0.3s;
+  }
+  .strength-seg.active-weak { background: var(--error); }
+  .strength-seg.active-mid { background: var(--gold); }
+  .strength-seg.active-strong { background: var(--success); }
+  .strength-label {
+    font-size: 0.68rem; color: var(--text3); margin-top: 0.3rem;
+    text-align: right; letter-spacing: 0.05em;
+  }
+
+  /* DIVIDER */
+  .divider {
+    display: flex; align-items: center; gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .divider::before, .divider::after {
+    content: ''; flex: 1; height: 0.5px; background: var(--border2);
+  }
+  .divider span { font-size: 0.72rem; color: var(--text3); letter-spacing: 0.06em; }
+
+  /* SOCIAL BTNS */
+  .social-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .social-btn {
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    background: var(--bg3); border: 0.5px solid var(--border2);
+    border-radius: 3px; padding: 0.7rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem; color: var(--text2);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .social-btn:hover { border-color: var(--border); color: var(--text); background: var(--bg4); }
+  .social-icon { font-size: 1rem; }
+
+  /* CHECKBOX */
+  .check-row {
+    display: flex; align-items: flex-start; gap: 0.75rem;
+    margin: 1.2rem 0;
+  }
+  .check-box {
+    width: 16px; height: 16px; min-width: 16px;
+    border: 0.5px solid var(--border); border-radius: 2px;
+    background: var(--bg3); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; margin-top: 2px;
+  }
+  .check-box.checked { background: var(--gold); border-color: var(--gold); }
+  .check-box.checked::after { content: '✓'; font-size: 0.65rem; color: var(--bg); font-weight: 700; }
+  .check-label { font-size: 0.8rem; color: var(--text2); line-height: 1.5; font-weight: 300; }
+  .check-label a { color: var(--gold); text-decoration: none; cursor: pointer; }
+
+  /* SUBMIT BTN */
+  .submit-btn {
+    width: 100%; padding: 0.9rem;
+    background: var(--gold); border: none; border-radius: 3px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.88rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--bg); cursor: pointer;
+    transition: all 0.25s; position: relative; overflow: hidden;
+    margin-top: 0.5rem;
+  }
+  .submit-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: var(--gold-light); opacity: 0; transition: opacity 0.25s;
+  }
+  .submit-btn:hover::after { opacity: 1; }
+  .submit-btn span { position: relative; z-index: 1; }
+  .submit-btn.loading span::after {
+    content: ''; display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(8,8,8,0.3);
+    border-top-color: var(--bg);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 0.6rem; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* FORGOT */
+  .forgot-link {
+    display: block; text-align: right;
+    font-size: 0.78rem; color: var(--text3);
+    text-decoration: none; margin-top: 0.5rem; cursor: pointer;
+    transition: color 0.2s;
+  }
+  .forgot-link:hover { color: var(--gold); }
+
+  /* FORM SECTIONS — show/hide */
+  .form-section { display: none; }
+  .form-section.active { display: block; }
+
+  /* STEP INDICATOR (register) */
+  .steps {
+    display: flex; gap: 0.5rem; align-items: center;
+    margin-bottom: 2rem;
+  }
+  .step-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border2); transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--gold); width: 20px; border-radius: 3px; }
+  .step-dot.done { background: var(--success); }
+  .step-label {
+    font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text3); margin-left: 0.5rem;
+  }
+
+  /* SUCCESS STATE */
+  .success-state {
+    text-align: center; padding: 2rem 0; display: none;
+  }
+  .success-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 1px solid var(--success);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 1.5rem;
+    animation: successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+  @keyframes successPop {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .success-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem;
+  }
+  .success-sub { font-size: 0.85rem; color: var(--text2); font-weight: 300; line-height: 1.6; }
+
+  /* ERROR MSG */
+  .error-msg {
+    background: rgba(224,85,85,0.08);
+    border: 0.5px solid rgba(224,85,85,0.3);
+    border-radius: 3px; padding: 0.7rem 1rem;
+    font-size: 0.8rem; color: var(--error);
+    margin-bottom: 1rem; display: none;
+  }
+
+  @media (max-width: 800px) {
+    .page { grid-template-columns: 1fr; }
+    .left-panel { display: none; }
+    .right-panel { padding: 2rem 1.5rem; overflow-y: auto; }
+    html, body { overflow: auto; height: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="page">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="left-grid"></div>
+    <div class="left-glow"></div>
+
+    <!-- Floating Cards -->
+    <div class="float-card float-card-1">
+      <div class="fc-label">Yeni Teklif</div>
+      <div class="fc-value">Berjer Koltuğu <span>×12</span></div>
+      <div class="fc-row">
+        <div class="fc-dot"></div>
+        <div class="fc-small">En düşük: $840</div>
+      </div>
+    </div>
+    <div class="float-card float-card-2">
+      <div class="fc-label">Tasarım Tamamlandı</div>
+      <div class="fc-value">Nike Air Concept</div>
+      <div class="fc-row">
+        <div class="fc-dot fc-dot-w"></div>
+        <div class="fc-small">STL · DXF · PDF hazır</div>
+      </div>
+    </div>
+
+    <div class="left-top">
+      <a href="1-omnidea-landing-entegre.html" class="logo">OMNI<span>IDEA</span></a>
+      <a href="1-omnidea-landing-entegre.html" class="back-link">← Ana Sayfa</a>
+    </div>
+
+    <div class="left-middle">
+      <div class="left-tag">Platform</div>
+      <h2 class="left-title">
+        Tasarımın<br>
+        <em>Sınırı Yok.</em>
+      </h2>
+      <p class="left-sub">
+        AI destekli stüdyoda tasarla, küresel üretici ağına sun. Fikrinden ürüne geçiş hiç bu kadar hızlı olmamıştı.
+      </p>
+    </div>
+
+    <div class="left-stats">
+      <div class="left-stat">
+        <div class="left-stat-num">8<span>+</span></div>
+        <div class="left-stat-label">Sektör</div>
+      </div>
+      <div class="left-stat">
+        <div class="left-stat-num">AI<span>×</span></div>
+        <div class="left-stat-label">Stüdyo</div>
+      </div>
+      <div class="left-stat">
+        <div class="left-stat-num">∞</div>
+        <div class="left-stat-label" data-i18n="market">Üretici</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="form-box">
+
+      <!-- TABS -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchTab('login')" data-i18n="login">Giriş Yap</button>
+        <button class="auth-tab" id="tab-register" onclick="switchTab('register')" data-i18n="register">Kayıt Ol</button>
+      </div>
+
+      <!-- ERROR -->
+      <div class="error-msg" id="errorMsg"></div>
+
+      <!-- ===== GİRİŞ FORMU ===== -->
+      <div class="form-section active" id="section-login">
+        <div class="form-title">Tekrar Hoş Geldin</div>
+        <p class="form-sub">Hesabın yok mu? <a onclick="switchTab('register')">Kayıt ol →</a></p>
+
+        <div class="social-btns">
+          <button class="social-btn" onclick="signInGoogle()"><span class="social-icon">G</span> Google</button>
+        </div>
+
+        <div class="field">
+          <label>E-posta Adresi</label>
+          <input type="email" id="login-email" placeholder="ornek@email.com">
+        </div>
+        <div class="field">
+          <label>Şifre</label>
+          <div class="pass-wrap">
+            <input type="password" id="login-pass" placeholder="••••••••">
+            <button class="pass-toggle" onclick="togglePass('login-pass', this)">Göster</button>
+          </div>
+        </div>
+        <a class="forgot-link" onclick="handleForgot()">Şifreni mi unuttun?</a>
+
+        <div class="check-row" onclick="toggleCheck('remember')">
+          <div class="check-box" id="remember"></div>
+          <span class="check-label" data-i18n="save">Beni hatırla</span>
+        </div>
+
+        <button class="submit-btn" onclick="handleLogin()"><span data-i18n="login">Giriş Yap</span></button>
+      </div>
+
+      <!-- ===== KAYIT FORMU ===== -->
+      <div class="form-section" id="section-register">
+
+        <!-- STEP 1: ROL SEÇ -->
+        <div id="reg-step1">
+          <div class="steps">
+            <div class="step-dot active" id="dot1"></div>
+            <div class="step-dot" id="dot2"></div>
+            <div class="step-dot" id="dot3"></div>
+            <span class="step-label">Adım 1 / 3</span>
+          </div>
+
+          <div class="form-title">Sen Kimsin?</div>
+          <p class="form-sub">Platformu nasıl kullanacağını seç.</p>
+
+          <div class="role-select">
+            <div class="role-card" id="role-designer" onclick="selectRole('designer')">
+              <div class="role-icon">✏️</div>
+              <div class="role-name" data-i18n="studio">Tasarımcı</div>
+              <div class="role-desc">Ürün tasarla, markete sun, üreticilerden teklif al</div>
+            </div>
+            <div class="role-card" id="role-producer" onclick="selectRole('producer')">
+              <div class="role-icon">🏭</div>
+              <div class="role-name">Üretici</div>
+              <div class="role-desc">Tasarımlara teklif ver, üretim anlaşması yap</div>
+            </div>
+          </div>
+
+          <button class="submit-btn" onclick="goStep(2)"><span>Devam Et →</span></button>
+        </div>
+
+        <!-- STEP 2: KİŞİSEL BİLGİ -->
+        <div id="reg-step2" style="display:none;">
+          <div class="steps">
+            <div class="step-dot done" id="dot1b"></div>
+            <div class="step-dot active" id="dot2b"></div>
+            <div class="step-dot" id="dot3b"></div>
+            <span class="step-label">Adım 2 / 3</span>
+          </div>
+
+          <div class="form-title">Bilgilerini Gir</div>
+          <p class="form-sub">Hızlıca kaydol, hemen başla.</p>
+
+          <div class="social-btns">
+            <button class="social-btn" onclick="signInGoogle()"><span class="social-icon">G</span> Google</button>
+          </div>
+          <div class="divider"><span>ya da form ile</span></div>
+
+          <div class="field">
+            <div class="field-row">
+              <div>
+                <label>Ad</label>
+                <input type="text" id="reg-name" placeholder="Adın">
+              </div>
+              <div>
+                <label>Soyad</label>
+                <input type="text" id="reg-surname" placeholder="Soyadın">
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>E-posta</label>
+            <input type="email" id="reg-email" placeholder="ornek@email.com">
+          </div>
+          <div class="field">
+            <label>Şifre</label>
+            <div class="pass-wrap">
+              <input type="password" id="reg-pass" placeholder="En az 8 karakter" oninput="checkStrength(this.value)">
+              <button class="pass-toggle" onclick="togglePass('reg-pass', this)">Göster</button>
+            </div>
+            <div class="strength-bar">
+              <div class="strength-seg" id="s1"></div>
+              <div class="strength-seg" id="s2"></div>
+              <div class="strength-seg" id="s3"></div>
+              <div class="strength-seg" id="s4"></div>
+            </div>
+            <div class="strength-label" id="strengthLabel">—</div>
+          </div>
+
+          <button class="submit-btn" onclick="goStep(3)"><span>Devam Et →</span></button>
+          <p style="text-align:center; margin-top:1rem;">
+            <a style="font-size:0.78rem; color:var(--text3); cursor: default;" onclick="goStep(1)">← Geri</a>
+          </p>
+        </div>
+
+        <!-- STEP 3: SEKTÖR & TAMAMLA -->
+        <div id="reg-step3" style="display:none;">
+          <div class="steps">
+            <div class="step-dot done"></div>
+            <div class="step-dot done"></div>
+            <div class="step-dot active"></div>
+            <span class="step-label">Adım 3 / 3</span>
+          </div>
+
+          <div class="form-title" data-i18n="success">Son Adım</div>
+          <p class="form-sub">Sektörünü seç ve hesabını oluştur.</p>
+
+          <div class="field">
+            <label>Birincil Sektörün</label>
+            <select id="reg-sector">
+              <option value="" disabled selected data-i18n="sector">Sektör seçin</option>
+              <option>Mobilya</option>
+              <option>Endüstriyel Ürünler</option>
+              <option>Ayakkabı</option>
+              <option>Takı & Aksesuar</option>
+              <option>Oto Aksesuar</option>
+              <option>Kıyafet</option>
+              <option>İş Aletleri</option>
+              <option>Grafik & Reklam</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Ülke</label>
+            <select id="reg-country">
+              <option value="" disabled selected>Ülke seçin</option>
+              <option>Türkiye</option>
+              <option>Özbekistan</option>
+              <option>Almanya</option>
+              <option>Amerika Birleşik Devletleri</option>
+              <option>Birleşik Krallık</option>
+              <option>Diğer</option>
+            </select>
+          </div>
+
+          <div class="check-row" onclick="toggleCheck('terms')">
+            <div class="check-box" id="terms"></div>
+            <span class="check-label"><a data-i18n="terms" data-i18n="terms">Kullanım Koşulları</a> ve <a data-i18n="privacy" data-i18n="privacy">Gizlilik Politikası</a>'nı okudum, kabul ediyorum.</span>
+          </div>
+
+          <button class="submit-btn" onclick="handleRegister()"><span data-i18n="register">Hesap Oluştur</span></button>
+          <p style="text-align:center; margin-top:1rem;">
+            <a style="font-size:0.78rem; color:var(--text3); cursor: default;" onclick="goStep(2)">← Geri</a>
+          </p>
+        </div>
+
+        <!-- SUCCESS -->
+        <div class="success-state" id="reg-success">
+          <div class="success-icon">✦</div>
+          <div class="success-title">Hoş Geldin!</div>
+          <p class="success-sub">Hesabın başarıyla oluşturuldu.<br>Dashboard'una yönlendiriliyorsun...</p>
+          <div style="margin-top:2rem;">
+            <button class="submit-btn" onclick="window.location.href='5-omnidea-dashboard-entegre.html'"><span>Dashboard'a Git →</span></button>
+          </div>
+        </div>
+
+      </div>
+      <!-- /KAYIT -->
+
+    </div>
+  </div>
+  <!-- /RIGHT PANEL -->
+
+</div>
+
+<script>
+  // ── Google OAuth ─────────────────────────────────────────────────────────
+  async function signInGoogle() {
+    await sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://omnideaai.github.io/omnidea/5-omnidea-dashboard-entegre.html' }
+    });
+  }
+
+  // ── <span data-i18n="forgot">Şifremi Unuttum</span> ───────────────────────────────────────────────────────
+  async function handleForgot() {
+    const email = document.getElementById('login-email').value.trim();
+    if (!email) { showError('Lütfen e-posta adresinizi girin.'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if (error) { showError(trErr(error.message)); return; }
+    showError(''); 
+    document.getElementById('errorMsg').style.color = 'var(--success)';
+    document.getElementById('errorMsg').textContent = 'Şifre sıfırlama linki gönderildi. E-postanızı kontrol edin.';
+    document.getElementById('errorMsg').style.display = 'block';
+  }
+
+  // ── Sayfa açılışında oturum var mı kontrol et ─────────────────────────────
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (session) window.location.href = '5-omnidea-dashboard-entegre.html';
+  });
+
+  // CURSOR
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=0, my=0, rx=0, ry=0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx-4+'px'; cursor.style.top = my-4+'px';
+  });
+  function animRing() {
+    rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+    ring.style.left = rx-16+'px'; ring.style.top = ry-16+'px';
+    requestAnimationFrame(animRing);
+  }
+  animRing();
+  document.querySelectorAll('button,a,.role-card,.check-row').forEach(el => {
+    el.addEventListener('mouseenter', () => { cursor.style.transform='scale(2)'; ring.style.transform='scale(1.3)'; ring.style.borderColor='rgba(201,168,76,0.7)'; });
+    el.addEventListener('mouseleave', () => { cursor.style.transform='scale(1)'; ring.style.transform='scale(1)'; ring.style.borderColor='rgba(201,168,76,0.35)'; });
+  });
+
+  // TAB SWITCH
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('tab-'+tab).classList.add('active');
+    document.getElementById('section-'+tab).classList.add('active');
+    hideError();
+  }
+
+  // ROLE SELECT
+  let selectedRole = null;
+  function selectRole(role) {
+    selectedRole = role;
+    document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('role-'+role).classList.add('selected');
+  }
+
+  // STEP NAVIGATION
+  function goStep(n) {
+    if (n === 2 && !selectedRole) { showError('Lütfen bir rol seçin.'); return; }
+    hideError();
+    document.getElementById('reg-step1').style.display = 'none';
+    document.getElementById('reg-step2').style.display = 'none';
+    document.getElementById('reg-step3').style.display = 'none';
+    document.getElementById('reg-step'+n).style.display = 'block';
+  }
+
+  // PASSWORD TOGGLE
+  function togglePass(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = 'Gizle'; }
+    else { inp.type = 'password'; btn.textContent = 'Göster'; }
+  }
+
+  // STRENGTH
+  function checkStrength(val) {
+    const segs = [document.getElementById('s1'),document.getElementById('s2'),document.getElementById('s3'),document.getElementById('s4')];
+    const lbl = document.getElementById('strengthLabel');
+    segs.forEach(s => s.className = 'strength-seg');
+    if (val.length === 0) { lbl.textContent = '—'; return; }
+    let score = 0;
+    if (val.length >= 8) score++;
+    if (/[A-Z]/.test(val)) score++;
+    if (/[0-9]/.test(val)) score++;
+    if (/[^A-Za-z0-9]/.test(val)) score++;
+    const cls = score <= 1 ? 'active-weak' : score <= 2 ? 'active-mid' : 'active-strong';
+    const labels = ['', 'Zayıf', 'Orta', 'İyi', 'Güçlü'];
+    for (let i = 0; i < score; i++) segs[i].classList.add(cls);
+    lbl.textContent = labels[score] || '—';
+    lbl.style.color = score <= 1 ? 'var(--error)' : score <= 2 ? 'var(--gold)' : 'var(--success)';
+  }
+
+  // CHECKBOX
+  function toggleCheck(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('checked');
+  }
+
+  // ERROR
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  // LOGIN — Supabase Auth
+  async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    if (!email || !pass) { showError('Lütfen tüm alanları doldurun.'); return; }
+    if (!email.includes('@')) { showError('Geçerli bir e-posta adresi girin.'); return; }
+
+    const btn = event.currentTarget;
+    btn.classList.add('loading');
+    hideError();
+
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+    btn.classList.remove('loading');
+
+    if (error) {
+      showError(trErr(error.message));
+      return;
+    }
+
+    // Başarılı giriş → dashboard'a yönlendir
+    window.location.href = '5-omnidea-dashboard-entegre.html';
+  }
+
+  // REGISTER — Supabase Auth
+  async function handleRegister() {
+    const terms = document.getElementById('terms');
+    if (!terms.classList.contains('checked')) { showError('Kullanım koşullarını kabul etmelisiniz.'); return; }
+
+    const name    = document.getElementById('reg-name').value.trim();
+    const surname = document.getElementById('reg-surname').value.trim();
+    const email   = document.getElementById('reg-email').value.trim();
+    const pass    = document.getElementById('reg-pass').value;
+    const sector  = document.getElementById('reg-sector').value;
+    const country = document.getElementById('reg-country').value;
+
+    if (!name || !email || !pass) { showError('Lütfen tüm zorunlu alanları doldurun.'); return; }
+    if (pass.length < 8) { showError('Şifre en az 8 karakter olmalıdır.'); return; }
+
+    const btn = event.currentTarget;
+    btn.classList.add('loading');
+    hideError();
+
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          full_name: `${name} ${surname}`.trim(),
+          role:      selectedRole,
+          sector,
+          country,
+        }
+      }
+    });
+
+    btn.classList.remove('loading');
+
+    if (error) {
+      showError(trErr(error.message));
+      return;
+    }
+
+    // Başarılı kayıt — success ekranı göster
+    document.getElementById('reg-step3').style.display = 'none';
+    document.getElementById('reg-success').style.display = 'block';
+
+    // 2 saniye sonra dashboard'a yönlendir
+    setTimeout(() => {
+      window.location.href = '5-omnidea-dashboard-entegre.html';
+    }, 2000);
+  }
+</script>
+
+
+
+<!-- DİL SEÇİCİ -->
+</div>
+<script>
+</script>
+
+
+<script>
+// OMNIDEA i18n Core — Tüm sayfalarda ortak
+// localStorage'dan dili okur, data-i18n attribute'larını çevirir
+// Lang picker YOK — sadece landing'de var
+(function(){
+var RTL=['ar','fa','ur','he'];
+var cur=localStorage.getItem('omnidea_lang')||'tr';
+
+// Temel UI kelimeleri — tüm sayfalarda ortak
+var BASE={
+  tr:{dashboard:'Dashboard',studio:'Stüdyo',market:'Pazar Yeri',messages:'Mesajlar',
+    portfolio:'Portföy',profile:'Profilim',settings:'Ayarlar',logout:'Çıkış Yap',
+    save:'Kaydet','new-project':'+ Yeni Proje',search:'Ara...',
+    send:'Gönder',cancel:'İptal',confirm:'Onayla',close:'Kapat',
+    back:'← Geri',loading:'Yükleniyor...',error:'Hata',success:'Başarılı',
+    welcome:'Hoş Geldin',hello:'Merhaba',
+    login:'Giriş Yap',register:'Kayıt Ol',email:'E-posta',password:'Şifre',
+    'forgot-pw':'Şifremi Unuttum','with-google':'Google ile Devam Et',
+    name:'Ad',surname:'Soyad',phone:'Telefon',country:'Ülke',city:'Şehir',
+    bio:'Hakkımda',company:'Firma',sector:'Sektör',
+    'privacy':'Gizlilik Politikası','terms':'Kullanım Koşulları',contact:'İletişim',
+    copyright:'© 2025 OMNIDEA. Tüm haklar saklıdır.',
+    plan:'Plan','upgrade':'Yükselt','free':'Ücretsiz','pro':'Pro',
+    'all':'Tümü','new':'Yeni','active':'Aktif','draft':'Taslak',
+    'published':'Yayında','archived':'Arşivlendi',
+    'accept':'Kabul Et','reject':'Reddet','details':'Detaylar',
+    'price':'Fiyat','date':'Tarih','status':'Durum','score':'Puan',
+    'bids':'Teklif','qty':'Adet','deadline':'Son Tarih',
+    'notifications':'Bildirimler','mark-read':'Okundu İşaretle',
+    'type-msg':'Mesajınızı yazın...','no-msg':'Henüz mesaj yok.',
+    'ai-prompt':'Tasarımı tanımla...','generate':'Üret','reset':'Sıfırla',
+    'download':'İndir','share':'Paylaş','export':'Dışa Aktar',
+    'width':'Genişlik','height':'Yükseklik','depth':'Derinlik',
+    'material':'Malzeme','color':'Renk','finish':'Yüzey',
+    'how-it-works':'Nasıl Çalışır','features':'Özellikler','about':'Hakkında',
+    'career':'Kariyer','blog':'Blog','press':'Basın & Medya',
+    'faq':'Sıkça Sorulan Sorular','legal':'Yasal',
+    'privacy-policy':'Gizlilik Politikası','cookie':'Çerez Politikası',
+    'explore':'Keşfet','trending':'Trend','popular':'Popüler',
+    'admin':'Yönetici','users':'Kullanıcılar','analytics':'Analitik',
+    'revenue':'Gelir','transactions':'İşlemler','moderation':'Moderasyon',
+    'total':'Toplam','average':'Ortalama','monthly':'Aylık',
+  },
+  en:{dashboard:'Dashboard',studio:'Studio',market:'Marketplace',messages:'Messages',
+    portfolio:'Portfolio',profile:'My Profile',settings:'Settings',logout:'Sign Out',
+    save:'Save','new-project':'+ New Project',search:'Search...',
+    send:'Send',cancel:'Cancel',confirm:'Confirm',close:'Close',
+    back:'← Back',loading:'Loading...',error:'Error',success:'Success',
+    welcome:'Welcome',hello:'Hello',
+    login:'Sign In',register:'Sign Up',email:'Email',password:'Password',
+    'forgot-pw':'Forgot Password','with-google':'Continue with Google',
+    name:'First Name',surname:'Last Name',phone:'Phone',country:'Country',city:'City',
+    bio:'About Me',company:'Company',sector:'Sector',
+    'privacy':'Privacy Policy','terms':'Terms of Service',contact:'Contact',
+    copyright:'© 2025 OMNIDEA. All rights reserved.',
+    plan:'Plan','upgrade':'Upgrade','free':'Free','pro':'Pro',
+    'all':'All','new':'New','active':'Active','draft':'Draft',
+    'published':'Published','archived':'Archived',
+    'accept':'Accept','reject':'Reject','details':'Details',
+    'price':'Price','date':'Date','status':'Status','score':'Score',
+    'bids':'Bids','qty':'Quantity','deadline':'Deadline',
+    'notifications':'Notifications','mark-read':'Mark as Read',
+    'type-msg':'Type your message...','no-msg':'No messages yet.',
+    'ai-prompt':'Describe your design...','generate':'Generate','reset':'Reset',
+    'download':'Download','share':'Share','export':'Export',
+    'width':'Width','height':'Height','depth':'Depth',
+    'material':'Material','color':'Color','finish':'Finish',
+    'how-it-works':'How It Works','features':'Features','about':'About',
+    'career':'Career','blog':'Blog','press':'Press & Media',
+    'faq':'FAQ','legal':'Legal',
+    'privacy-policy':'Privacy Policy','cookie':'Cookie Policy',
+    'explore':'Explore','trending':'Trending','popular':'Popular',
+    'admin':'Admin','users':'Users','analytics':'Analytics',
+    'revenue':'Revenue','transactions':'Transactions','moderation':'Moderation',
+    'total':'Total','average':'Average','monthly':'Monthly',
+  },
+  ar:{dashboard:'لوحة التحكم',studio:'الاستوديو',market:'السوق',messages:'الرسائل',
+    portfolio:'المحفظة',profile:'ملفي',settings:'الإعدادات',logout:'تسجيل الخروج',
+    save:'حفظ','new-project':'+ مشروع جديد',search:'بحث...',
+    send:'إرسال',cancel:'إلغاء',confirm:'تأكيد',close:'إغلاق',
+    back:'رجوع →',loading:'جاري التحميل...',error:'خطأ',success:'نجاح',
+    welcome:'مرحباً',hello:'مرحبا',
+    login:'تسجيل الدخول',register:'إنشاء حساب',email:'البريد الإلكتروني',password:'كلمة المرور',
+    'forgot-pw':'نسيت كلمة المرور','with-google':'المتابعة مع Google',
+    name:'الاسم الأول',surname:'اسم العائلة',phone:'الهاتف',country:'الدولة',city:'المدينة',
+    bio:'نبذة عني',company:'الشركة',sector:'القطاع',
+    'privacy':'سياسة الخصوصية','terms':'شروط الخدمة',contact:'تواصل معنا',
+    copyright:'© 2025 OMNIDEA. جميع الحقوق محفوظة.',
+    plan:'الخطة','upgrade':'ترقية','free':'مجاني','pro':'برو',
+    'all':'الكل','new':'جديد','active':'نشط','draft':'مسودة',
+    'published':'منشور','archived':'مؤرشف',
+    'accept':'قبول','reject':'رفض','details':'التفاصيل',
+    'price':'السعر','date':'التاريخ','status':'الحالة','score':'النقاط',
+    'bids':'العروض','qty':'الكمية','deadline':'الموعد النهائي',
+    'notifications':'الإشعارات','mark-read':'تعيين كمقروء',
+    'type-msg':'اكتب رسالتك...','no-msg':'لا توجد رسائل بعد.',
+    'ai-prompt':'صف تصميمك...','generate':'توليد','reset':'إعادة تعيين',
+    'download':'تنزيل','share':'مشاركة','export':'تصدير',
+    'width':'العرض','height':'الارتفاع','depth':'العمق',
+    'material':'المادة','color':'اللون','finish':'التشطيب',
+    'how-it-works':'كيف يعمل','features':'المميزات','about':'حول',
+    'career':'وظائف','blog':'المدونة','press':'الصحافة',
+    'faq':'الأسئلة الشائعة','legal':'قانوني',
+    'privacy-policy':'سياسة الخصوصية','cookie':'سياسة ملفات تعريف الارتباط',
+    'explore':'استكشاف','trending':'الرائج','popular':'الشائع',
+    'admin':'الإدارة','users':'المستخدمون','analytics':'التحليلات',
+    'revenue':'الإيرادات','transactions':'المعاملات','moderation':'الإشراف',
+    'total':'المجموع','average':'المتوسط','monthly':'شهري',
+  },
+  zh:{dashboard:'控制台',studio:'工作室',market:'市场',messages:'消息',
+    portfolio:'作品集',profile:'我的资料',settings:'设置',logout:'退出登录',
+    save:'保存','new-project':'+ 新项目',search:'搜索...',
+    send:'发送',cancel:'取消',confirm:'确认',close:'关闭',
+    back:'← 返回',loading:'加载中...',error:'错误',success:'成功',
+    welcome:'欢迎',hello:'你好',
+    login:'登录',register:'注册',email:'电子邮件',password:'密码',
+    'forgot-pw':'忘记密码','with-google':'使用Google继续',
+    name:'名字',surname:'姓氏',phone:'电话',country:'国家',city:'城市',
+    bio:'关于我',company:'公司',sector:'行业',
+    'privacy':'隐私政策','terms':'服务条款',contact:'联系我们',
+    copyright:'© 2025 OMNIDEA. 版权所有。',
+    plan:'计划','upgrade':'升级','free':'免费','pro':'专业版',
+    'all':'全部','new':'新建','active':'活跃','draft':'草稿',
+    'published':'已发布','archived':'已归档',
+    'accept':'接受','reject':'拒绝','details':'详情',
+    'price':'价格','date':'日期','status':'状态','score':'分数',
+    'bids':'报价','qty':'数量','deadline':'截止日期',
+    'notifications':'通知','mark-read':'标为已读',
+    'type-msg':'输入消息...','no-msg':'暂无消息。',
+    'ai-prompt':'描述您的设计...','generate':'生成','reset':'重置',
+    'download':'下载','share':'分享','export':'导出',
+    'width':'宽度','height':'高度','depth':'深度',
+    'material':'材料','color':'颜色','finish':'表面处理',
+    'how-it-works':'运作方式','features':'功能','about':'关于',
+    'career':'招聘','blog':'博客','press':'新闻媒体',
+    'faq':'常见问题','legal':'法律',
+    'privacy-policy':'隐私政策','cookie':'Cookie政策',
+    'explore':'探索','trending':'趋势','popular':'热门',
+    'admin':'管理员','users':'用户','analytics':'分析',
+    'revenue':'收入','transactions':'交易','moderation':'审核',
+    'total':'总计','average':'平均','monthly':'月度',
+  },
+  ru:{dashboard:'Панель управления',studio:'Студия',market:'Маркет',messages:'Сообщения',
+    portfolio:'Портфолио',profile:'Мой профиль',settings:'Настройки',logout:'Выйти',
+    save:'Сохранить','new-project':'+ Новый проект',search:'Поиск...',
+    send:'Отправить',cancel:'Отмена',confirm:'Подтвердить',close:'Закрыть',
+    back:'← Назад',loading:'Загрузка...',error:'Ошибка',success:'Успешно',
+    welcome:'Добро пожаловать',hello:'Привет',
+    login:'Войти',register:'Регистрация',email:'Эл. почта',password:'Пароль',
+    'forgot-pw':'Забыли пароль','with-google':'Войти через Google',
+    name:'Имя',surname:'Фамилия',phone:'Телефон',country:'Страна',city:'Город',
+    bio:'О себе',company:'Компания',sector:'Сектор',
+    'privacy':'Конфиденциальность','terms':'Условия использования',contact:'Контакты',
+    copyright:'© 2025 OMNIDEA. Все права защищены.',
+    plan:'Тариф','upgrade':'Улучшить','free':'Бесплатный','pro':'Про',
+    'all':'Все','new':'Новый','active':'Активный','draft':'Черновик',
+    'published':'Опубликован','archived':'В архиве',
+    'accept':'Принять','reject':'Отклонить','details':'Подробнее',
+    'price':'Цена','date':'Дата','status':'Статус','score':'Рейтинг',
+    'bids':'Предложения','qty':'Количество','deadline':'Срок',
+    'notifications':'Уведомления','mark-read':'Отметить прочитанным',
+    'type-msg':'Введите сообщение...','no-msg':'Сообщений пока нет.',
+    'ai-prompt':'Опишите дизайн...','generate':'Создать','reset':'Сбросить',
+    'download':'Скачать','share':'Поделиться','export':'Экспорт',
+    'width':'Ширина','height':'Высота','depth':'Глубина',
+    'material':'Материал','color':'Цвет','finish':'Покрытие',
+    'how-it-works':'Как работает','features':'Возможности','about':'О нас',
+    'career':'Карьера','blog':'Блог','press':'Пресса',
+    'faq':'Вопросы','legal':'Правовые',
+    'privacy-policy':'Политика конфиденциальности','cookie':'Политика cookies',
+    'explore':'Обзор','trending':'Тренды','popular':'Популярное',
+    'admin':'Админ','users':'Пользователи','analytics':'Аналитика',
+    'revenue':'Доход','transactions':'Транзакции','moderation':'Модерация',
+    'total':'Итого','average':'Среднее','monthly':'Ежемесячно',
+  },
+  de:{dashboard:'Dashboard',studio:'Studio',market:'Marktplatz',messages:'Nachrichten',
+    portfolio:'Portfolio',profile:'Mein Profil',settings:'Einstellungen',logout:'Abmelden',
+    save:'Speichern','new-project':'+ Neues Projekt',search:'Suche...',
+    send:'Senden',cancel:'Abbrechen',confirm:'Bestätigen',close:'Schließen',
+    back:'← Zurück',loading:'Laden...',error:'Fehler',success:'Erfolg',
+    welcome:'Willkommen',hello:'Hallo',
+    login:'Anmelden',register:'Registrieren',email:'E-Mail',password:'Passwort',
+    'forgot-pw':'Passwort vergessen','with-google':'Mit Google fortfahren',
+    name:'Vorname',surname:'Nachname',phone:'Telefon',country:'Land',city:'Stadt',
+    bio:'Über mich',company:'Unternehmen',sector:'Sektor',
+    'privacy':'Datenschutz','terms':'Nutzungsbedingungen',contact:'Kontakt',
+    copyright:'© 2025 OMNIDEA. Alle Rechte vorbehalten.',
+    plan:'Plan','upgrade':'Upgraden','free':'Kostenlos','pro':'Pro',
+    'all':'Alle','new':'Neu','active':'Aktiv','draft':'Entwurf',
+    'published':'Veröffentlicht','archived':'Archiviert',
+    'accept':'Annehmen','reject':'Ablehnen','details':'Details',
+    'price':'Preis','date':'Datum','status':'Status','score':'Bewertung',
+    'bids':'Angebote','qty':'Menge','deadline':'Frist',
+    'notifications':'Benachrichtigungen','mark-read':'Als gelesen markieren',
+    'type-msg':'Nachricht eingeben...','no-msg':'Noch keine Nachrichten.',
+    'ai-prompt':'Design beschreiben...','generate':'Erstellen','reset':'Zurücksetzen',
+    'download':'Herunterladen','share':'Teilen','export':'Exportieren',
+    'width':'Breite','height':'Höhe','depth':'Tiefe',
+    'material':'Material','color':'Farbe','finish':'Oberfläche',
+    'how-it-works':'Wie es funktioniert','features':'Funktionen','about':'Über uns',
+    'career':'Karriere','blog':'Blog','press':'Presse',
+    'faq':'FAQ','legal':'Rechtliches',
+    'privacy-policy':'Datenschutzerklärung','cookie':'Cookie-Richtlinie',
+    'explore':'Entdecken','trending':'Trending','popular':'Beliebt',
+    'admin':'Admin','users':'Benutzer','analytics':'Analytik',
+    'revenue':'Umsatz','transactions':'Transaktionen','moderation':'Moderation',
+    'total':'Gesamt','average':'Durchschnitt','monthly':'Monatlich',
+  },
+  fr:{dashboard:'Tableau de bord',studio:'Studio',market:'Marché',messages:'Messages',
+    portfolio:'Portfolio',profile:'Mon profil',settings:'Paramètres',logout:'Se déconnecter',
+    save:'Enregistrer','new-project':'+ Nouveau projet',search:'Rechercher...',
+    send:'Envoyer',cancel:'Annuler',confirm:'Confirmer',close:'Fermer',
+    back:'← Retour',loading:'Chargement...',error:'Erreur',success:'Succès',
+    welcome:'Bienvenue',hello:'Bonjour',
+    login:'Se connecter',register:"S'inscrire",email:'E-mail',password:'Mot de passe',
+    'forgot-pw':'Mot de passe oublié','with-google':'Continuer avec Google',
+    name:'Prénom',surname:'Nom de famille',phone:'Téléphone',country:'Pays',city:'Ville',
+    bio:'À propos de moi',company:'Entreprise',sector:'Secteur',
+    'privacy':'Confidentialité','terms':"Conditions d'utilisation",contact:'Contact',
+    copyright:'© 2025 OMNIDEA. Tous droits réservés.',
+    plan:'Plan','upgrade':'Améliorer','free':'Gratuit','pro':'Pro',
+    'all':'Tout','new':'Nouveau','active':'Actif','draft':'Brouillon',
+    'published':'Publié','archived':'Archivé',
+    'accept':'Accepter','reject':'Rejeter','details':'Détails',
+    'price':'Prix','date':'Date','status':'Statut','score':'Score',
+    'bids':'Offres','qty':'Quantité','deadline':'Délai',
+    'notifications':'Notifications','mark-read':'Marquer comme lu',
+    'type-msg':'Tapez votre message...','no-msg':'Pas encore de messages.',
+    'ai-prompt':'Décrivez votre design...','generate':'Générer','reset':'Réinitialiser',
+    'download':'Télécharger','share':'Partager','export':'Exporter',
+    'width':'Largeur','height':'Hauteur','depth':'Profondeur',
+    'material':'Matériau','color':'Couleur','finish':'Finition',
+    'how-it-works':'Comment ça marche','features':'Fonctionnalités','about':'À propos',
+    'career':'Carrière','blog':'Blog','press':'Presse',
+    'faq':'FAQ','legal':'Juridique',
+    'privacy-policy':'Politique de confidentialité','cookie':'Politique de cookies',
+    'explore':'Explorer','trending':'Tendances','popular':'Populaire',
+    'admin':'Admin','users':'Utilisateurs','analytics':'Analytique',
+    'revenue':'Revenus','transactions':'Transactions','moderation':'Modération',
+    'total':'Total','average':'Moyenne','monthly':'Mensuel',
+  },
+  es:{dashboard:'Panel',studio:'Estudio',market:'Mercado',messages:'Mensajes',
+    portfolio:'Portafolio',profile:'Mi perfil',settings:'Configuración',logout:'Cerrar sesión',
+    save:'Guardar','new-project':'+ Nuevo proyecto',search:'Buscar...',
+    send:'Enviar',cancel:'Cancelar',confirm:'Confirmar',close:'Cerrar',
+    back:'← Atrás',loading:'Cargando...',error:'Error',success:'Éxito',
+    welcome:'Bienvenido',hello:'Hola',
+    login:'Iniciar sesión',register:'Registrarse',email:'Correo',password:'Contraseña',
+    'forgot-pw':'¿Olvidaste tu contraseña?','with-google':'Continuar con Google',
+    name:'Nombre',surname:'Apellido',phone:'Teléfono',country:'País',city:'Ciudad',
+    bio:'Sobre mí',company:'Empresa',sector:'Sector',
+    'privacy':'Privacidad','terms':'Términos de servicio',contact:'Contacto',
+    copyright:'© 2025 OMNIDEA. Todos los derechos reservados.',
+    plan:'Plan','upgrade':'Mejorar','free':'Gratis','pro':'Pro',
+    'all':'Todos','new':'Nuevo','active':'Activo','draft':'Borrador',
+    'published':'Publicado','archived':'Archivado',
+    'accept':'Aceptar','reject':'Rechazar','details':'Detalles',
+    'price':'Precio','date':'Fecha','status':'Estado','score':'Puntuación',
+    'bids':'Ofertas','qty':'Cantidad','deadline':'Plazo',
+    'notifications':'Notificaciones','mark-read':'Marcar como leído',
+    'type-msg':'Escribe tu mensaje...','no-msg':'Sin mensajes aún.',
+    'ai-prompt':'Describe tu diseño...','generate':'Generar','reset':'Restablecer',
+    'download':'Descargar','share':'Compartir','export':'Exportar',
+    'width':'Ancho','height':'Alto','depth':'Profundidad',
+    'material':'Material','color':'Color','finish':'Acabado',
+    'how-it-works':'Cómo funciona','features':'Características','about':'Acerca de',
+    'career':'Empleo','blog':'Blog','press':'Prensa',
+    'faq':'Preguntas frecuentes','legal':'Legal',
+    'privacy-policy':'Política de privacidad','cookie':'Política de cookies',
+    'explore':'Explorar','trending':'Tendencias','popular':'Popular',
+    'admin':'Admin','users':'Usuarios','analytics':'Analítica',
+    'revenue':'Ingresos','transactions':'Transacciones','moderation':'Moderación',
+    'total':'Total','average':'Promedio','monthly':'Mensual',
+  },
+  uz:{dashboard:'Boshqaruv paneli',studio:'Studio',market:'Bozor',messages:'Xabarlar',
+    portfolio:'Portfolio',profile:'Mening profilim',settings:"Sozlamalar",logout:'Chiqish',
+    save:'Saqlash','new-project':'+ Yangi loyiha',search:'Qidirish...',
+    send:'Yuborish',cancel:'Bekor qilish',confirm:'Tasdiqlash',close:'Yopish',
+    back:'← Orqaga',loading:'Yuklanmoqda...',error:'Xato',success:'Muvaffaqiyat',
+    welcome:'Xush kelibsiz',hello:'Salom',
+    login:'Kirish',register:"Ro'yxatdan o'tish",email:'Elektron pochta',password:'Parol',
+    'forgot-pw':'Parolni unutdingizmi','with-google':"Google bilan davom eting",
+    name:'Ism',surname:'Familiya',phone:'Telefon',country:'Mamlakat',city:'Shahar',
+    bio:'Men haqimda',company:'Kompaniya',sector:'Sektor',
+    'privacy':'Maxfiylik siyosati','terms':'Foydalanish shartlari',contact:"Bog'lanish",
+    copyright:"© 2025 OMNIDEA. Barcha huquqlar himoyalangan.",
+    plan:'Tarif','upgrade':'Yaxshilash','free':'Bepul','pro':'Pro',
+    'all':'Barchasi','new':'Yangi','active':'Faol','draft':'Qoralama',
+    'published':'Nashr qilingan','archived':'Arxivlangan',
+    'accept':'Qabul qilish','reject':'Rad etish','details':'Tafsilotlar',
+    'price':'Narx','date':'Sana','status':'Holat','score':'Ball',
+    'bids':'Takliflar','qty':'Miqdor','deadline':'Muddat',
+    'notifications':'Bildirishnomalar','mark-read':'O\'qilgan deb belgilash',
+    'type-msg':'Xabaringizni yozing...','no-msg':'Hali xabar yo\'q.',
+    'ai-prompt':'Dizayningizni tasvirlab bering...','generate':'Yaratish','reset':'Qayta tiklash',
+    'download':'Yuklab olish','share':'Ulashish','export':'Eksport',
+    'width':'Kenglik','height':'Balandlik','depth':'Chuqurlik',
+    'material':'Material','color':'Rang','finish':'Qoplama',
+    'how-it-works':"Qanday ishlaydi",'features':'Imkoniyatlar','about':'Biz haqimizda',
+    'career':'Martaba','blog':'Blog','press':'Matbuot',
+    'faq':'Ko\'p so\'raladigan savollar','legal':'Huquqiy',
+    'privacy-policy':'Maxfiylik siyosati','cookie':'Cookie siyosati',
+    'explore':'Kashf etish','trending':'Trend','popular':'Mashhur',
+    'admin':'Admin','users':'Foydalanuvchilar','analytics':'Tahlil',
+    'revenue':'Daromad','transactions':'Tranzaksiyalar','moderation':'Moderatsiya',
+    'total':'Jami','average':'O\'rtacha','monthly':'Oylik',
+  },
+  ja:{dashboard:'ダッシュボード',studio:'スタジオ',market:'マーケット',messages:'メッセージ',
+    portfolio:'ポートフォリオ',profile:'マイプロフィール',settings:'設定',logout:'ログアウト',
+    save:'保存','new-project':'+ 新しいプロジェクト',search:'検索...',
+    send:'送信',cancel:'キャンセル',confirm:'確認',close:'閉じる',
+    back:'← 戻る',loading:'読み込み中...',error:'エラー',success:'成功',
+    welcome:'ようこそ',hello:'こんにちは',
+    login:'ログイン',register:'登録',email:'メール',password:'パスワード',
+    'forgot-pw':'パスワードを忘れた','with-google':'Googleで続ける',
+    name:'名前',surname:'苗字',phone:'電話',country:'国',city:'都市',
+    bio:'自己紹介',company:'会社',sector:'セクター',
+    'privacy':'プライバシーポリシー','terms':'利用規約',contact:'お問い合わせ',
+    copyright:'© 2025 OMNIDEA. 全著作権所有。',
+    plan:'プラン','upgrade':'アップグレード','free':'無料','pro':'プロ',
+    'all':'すべて','new':'新規','active':'アクティブ','draft':'下書き',
+    'published':'公開済み','archived':'アーカイブ済み',
+    'accept':'承認','reject':'拒否','details':'詳細',
+    'price':'価格','date':'日付','status':'ステータス','score':'スコア',
+    'bids':'入札','qty':'数量','deadline':'締切',
+    'notifications':'通知','mark-read':'既読にする',
+    'type-msg':'メッセージを入力...','no-msg':'メッセージはまだありません。',
+    'ai-prompt':'デザインを説明...','generate':'生成','reset':'リセット',
+    'download':'ダウンロード','share':'共有','export':'エクスポート',
+    'width':'幅','height':'高さ','depth':'奥行き',
+    'material':'素材','color':'色','finish':'仕上げ',
+    'how-it-works':'使い方','features':'機能','about':'について',
+    'career':'採用','blog':'ブログ','press':'報道',
+    'faq':'よくある質問','legal':'法的情報',
+    'privacy-policy':'プライバシーポリシー','cookie':'Cookieポリシー',
+    'explore':'探索','trending':'トレンド','popular':'人気',
+    'admin':'管理者','users':'ユーザー','analytics':'分析',
+    'revenue':'収益','transactions':'取引','moderation':'モデレーション',
+    'total':'合計','average':'平均','monthly':'月次',
+  },
+  ko:{dashboard:'대시보드',studio:'스튜디오',market:'마켓',messages:'메시지',
+    portfolio:'포트폴리오',profile:'내 프로필',settings:'설정',logout:'로그아웃',
+    save:'저장','new-project':'+ 새 프로젝트',search:'검색...',
+    send:'보내기',cancel:'취소',confirm:'확인',close:'닫기',
+    back:'← 뒤로',loading:'로딩 중...',error:'오류',success:'성공',
+    welcome:'환영합니다',hello:'안녕하세요',
+    login:'로그인',register:'가입',email:'이메일',password:'비밀번호',
+    'forgot-pw':'비밀번호를 잊으셨나요','with-google':'Google로 계속',
+    name:'이름',surname:'성',phone:'전화',country:'국가',city:'도시',
+    bio:'소개',company:'회사',sector:'섹터',
+    'privacy':'개인정보 처리방침','terms':'이용약관',contact:'문의',
+    copyright:'© 2025 OMNIDEA. 모든 권리 보유.',
+    plan:'플랜','upgrade':'업그레이드','free':'무료','pro':'프로',
+    'all':'전체','new':'신규','active':'활성','draft':'임시저장',
+    'published':'게시됨','archived':'보관됨',
+    'accept':'수락','reject':'거절','details':'상세',
+    'price':'가격','date':'날짜','status':'상태','score':'점수',
+    'bids':'입찰','qty':'수량','deadline':'마감일',
+    'notifications':'알림','mark-read':'읽음 표시',
+    'type-msg':'메시지를 입력하세요...','no-msg':'메시지가 없습니다.',
+    'ai-prompt':'디자인을 설명하세요...','generate':'생성','reset':'초기화',
+    'download':'다운로드','share':'공유','export':'내보내기',
+    'width':'너비','height':'높이','depth':'깊이',
+    'material':'재료','color':'색상','finish':'마감',
+    'how-it-works':'사용 방법','features':'기능','about':'소개',
+    'career':'채용','blog':'블로그','press':'보도',
+    'faq':'자주 묻는 질문','legal':'법적 정보',
+    'privacy-policy':'개인정보 처리방침','cookie':'쿠키 정책',
+    'explore':'탐색','trending':'트렌딩','popular':'인기',
+    'admin':'관리자','users':'사용자','analytics':'분석',
+    'revenue':'수익','transactions':'거래','moderation':'중재',
+    'total':'합계','average':'평균','monthly':'월간',
+  },
+};
+
+// Diğer tüm diller için EN fallback
+var done=new Set(Object.keys(BASE));
+// Fallback atama zaten yapılmış olacak
+
+function apply(code){
+  var t=BASE[code]||BASE['en'];
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k=el.getAttribute('data-i18n');
+    if(t[k]!==undefined)el.textContent=t[k];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+    var k=el.getAttribute('data-i18n-ph');
+    if(t[k]!==undefined)el.placeholder=t[k];
+  });
+  var rtl=['ar','fa','ur','he'];
+  document.documentElement.dir=rtl.indexOf(code)>-1?'rtl':'ltr';
+  document.documentElement.lang=code;
+}
+
+if(document.readyState==='loading')
+  document.addEventListener('DOMContentLoaded',function(){apply(cur);});
+else apply(cur);
+})();
+
+</script>
+</body>
+</html>
