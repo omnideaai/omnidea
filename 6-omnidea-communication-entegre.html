@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OMNIDEA — Mesajlaşma & Üretim Takip</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ── Supabase Yapılandırması ─────────────────────────────────────────────
+  // Supabase Dashboard > Settings > API'dan kendi değerlerinle değiştir:
+  const SUPABASE_URL = 'https://jucamvtjstmdyynyeyap.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1Y2FtdnRqc3RtZHl5bnlleWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDE4OTQsImV4cCI6MjA5MDAxNzg5NH0.XMDLxuAyIE_f1-8PzecJii-GJKcxt3eWtD9FLqg-eDg';
+
+  // Demo modu koruması: URL hâlâ placeholder ise sayfayı kırmadan çalıştır
+  const SUPABASE_READY = true; // Gerçek değerler yüklendi
+
+  const _demoSession = {
+    user: { id: 'demo-user', email: 'demo@omnidea.app',
+            user_metadata: { full_name: 'Demo Kullanıcı', api_key: 'demo1234' } }
+  };
+  const _demoProfile = { full_name: 'Demo Kullanıcı', plan: 'pro', credits: 100, avatar_url: null };
+
+  const sb = SUPABASE_READY
+    ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+    : {
+        auth: {
+          getSession:          async () => ({ data: { session: _demoSession }, error: null }),
+          getUser:             async () => ({ data: { user: _demoSession.user }, error: null }),
+          signOut:             async () => {},
+          updateUser:          async () => ({ data: null, error: null }),
+          onAuthStateChange:   ()       => ({ data: { subscription: { unsubscribe: () => {} } } }),
+          signInWithPassword:  async () => ({ data: null, error: { message: 'Demo modunda giriş yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signUp:              async () => ({ data: null, error: { message: 'Demo modunda kayıt yapılamaz. Önce Supabase bağlantısını kurun.' } }),
+          signInWithOAuth:     async () => ({ data: null, error: null }),
+          resetPasswordForEmail: async () => ({ data: null, error: null }),
+        },
+        from: (table) => {
+          const _q = {
+            data: null, _filters: [],
+            select: function()  { return this; },
+            insert: async function() { return { data: { id: 'demo-' + Date.now() }, error: null }; },
+            update: function()  { return this; },
+            delete: function()  { return this; },
+            eq:     function()  { return this; },
+            neq:    function()  { return this; },
+            in:     function()  { return this; },
+            is:     function()  { return this; },
+            ilike:  function()  { return this; },
+            contains: function(){ return this; },
+            order:  function()  { return this; },
+            limit:  function()  { return this; },
+            then:   function(fn){ return Promise.resolve({ data: [], error: null, count: 0 }).then(fn); },
+            single: async function() {
+              if (table === 'profiles') return { data: _demoProfile, error: null };
+              return { data: null, error: null };
+            },
+          };
+          return _q;
+        },
+        channel:       () => ({ on: function(){ return this; }, subscribe: function(){ return this; }, send: async function(){} }),
+        removeChannel: () => {},
+        storage:       { from: () => ({ upload: async () => ({ data: null, error: null }), getPublicUrl: () => ({ data: { publicUrl: '' } }), remove: async () => ({}) }) },
+      };
+
+  if (!SUPABASE_READY) {
+    console.warn('[OMNIDEA] ⚠ Demo modu — Supabase bağlantısı yapılandırılmamış.');
+    console.warn('[OMNIDEA] SUPABASE_URL ve SUPABASE_KEY değerlerini Supabase Dashboard > Settings > API\'dan alın.');
+  }
+</script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#C9A84C;--gold-light:#E8C97A;
+  --bg:#080808;--bg2:#0F0F0F;--bg3:#161616;--bg4:#1E1E1E;--bg5:#242424;
+  --text:#F0EDE6;--text2:#A09A8E;--text3:#5A554E;
+  --border:rgba(201,168,76,0.15);--border2:rgba(201,168,76,0.07);
+  --success:#4CAF7D;--error:#E05555;--info:#4A9ECA;--warn:#E8A23A;
+  --sw:220px;--th:48px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;cursor: default;}
+.cursor{width:7px;height:7px;background:var(--gold);border-radius:50%;position:fixed;pointer-events:none;z-index:9999;transition:transform 0.1s;}
+.cursor-ring{width:28px;height:28px;border:1px solid rgba(201,168,76,0.3);border-radius:50%;position:fixed;pointer-events:none;z-index:9998;transition:all 0.12s;}
+
+.app{display:grid;grid-template-rows:var(--th) 1fr;grid-template-columns:var(--sw) 1fr;height:100vh;}
+
+/* TOPBAR */
+.topbar{grid-column:1/-1;display:flex;align-items:center;background:var(--bg2);border-bottom:0.5px solid var(--border2);z-index:50;padding:0;}
+.tlogo{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;letter-spacing:0.08em;color:var(--text);padding:0 1.2rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;}
+.tlogo span{color:var(--gold);}
+.tbread{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);padding:0 1rem;border-right:0.5px solid var(--border2);height:100%;display:flex;align-items:center;gap:0.4rem;}
+.tbread b{color:var(--gold);}
+.ttabs{display:flex;flex:1;height:100%;border-right:0.5px solid var(--border2);}
+.ttab{padding:0 1.2rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor: pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;height:100%;}
+.ttab:hover{color:var(--text2);}
+.ttab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.ttab-badge{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--error);color:#fff;font-size:0.55rem;margin-left:0.3rem;font-weight:700;}
+.tr{display:flex;align-items:center;gap:0.6rem;padding:0 1rem;height:100%;}
+.tb{font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;padding:0.38rem 0.9rem;border-radius:2px;border:none;cursor: pointer;transition:all 0.2s;}
+.tb-g{background:none;color:var(--text2);border:0.5px solid var(--border2);}
+.tb-g:hover{border-color:var(--border);color:var(--text);}
+.tb-gold{background:var(--gold);color:var(--bg);}
+.tb-gold:hover{background:var(--gold-light);}
+.av{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,0.15);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;color:var(--gold);}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:0.5px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;}
+.sl{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;color:var(--text3);padding:0.9rem 0.9rem 0.4rem;display:block;}
+.si{display:flex;align-items:center;gap:0.55rem;padding:0.45rem 0.7rem;border-radius:3px;cursor: pointer;transition:all 0.15s;font-size:0.8rem;color:var(--text2);margin:1px 0.5rem;}
+.si:hover{background:var(--bg3);color:var(--text);}
+.si.active{background:rgba(201,168,76,0.08);color:var(--gold);border-left:2px solid var(--gold);border-radius:0 3px 3px 0;margin-left:0;padding-left:calc(0.7rem - 2px + 0.5rem);}
+.si-ico{font-size:0.85rem;width:15px;text-align:center;flex-shrink:0;}
+.si-badge{font-size:0.58rem;background:var(--error);color:#fff;border-radius:8px;padding:1px 5px;margin-left:auto;}
+.sdiv{height:0.5px;background:var(--border2);margin:0.4rem 0.7rem;}
+
+/* MAIN */
+.main{display:flex;flex-direction:column;overflow:hidden;}
+
+/* ══ PANEL VIEWS ══ */
+.panel{display:none;flex:1;overflow:hidden;}
+.panel.active{display:flex;}
+
+/* ══════════════════════════════
+   MSG PANEL — 3 COLUMN
+══════════════════════════════ */
+.msg-layout{display:grid;grid-template-columns:260px 1fr 300px;height:100%;overflow:hidden;}
+
+/* CONV LIST */
+.conv-list{border-right:0.5px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;background:var(--bg2);}
+.conv-search{padding:0.6rem 0.75rem;border-bottom:0.5px solid var(--border2);display:flex;align-items:center;gap:0.4rem;flex-shrink:0;}
+.conv-search input{background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;padding:0.35rem 0.6rem;font-family:'DM Sans',sans-serif;font-size:0.75rem;color:var(--text);outline:none;width:100%;cursor: pointer;transition:border-color 0.15s;}
+.conv-search input:focus{border-color:var(--border);}
+.conv-scroll{flex:1;overflow-y:auto;}
+.conv-scroll::-webkit-scrollbar{width:3px;}
+.conv-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.conv-item{padding:0.75rem 0.9rem;display:flex;gap:0.6rem;cursor: pointer;transition:background 0.15s;border-bottom:0.5px solid var(--border2);position:relative;}
+.conv-item:hover{background:var(--bg3);}
+.conv-item.active-conv{background:var(--bg3);border-left:2px solid var(--gold);}
+.conv-item.unread-conv::after{content:'';position:absolute;top:50%;right:0.8rem;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--gold);}
+.conv-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;flex-shrink:0;}
+.conv-info{flex:1;min-width:0;}
+.conv-name{font-size:0.78rem;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.conv-project{font-size:0.62rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.conv-preview{font-size:0.65rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+.conv-time{font-size:0.6rem;color:var(--text3);text-align:right;flex-shrink:0;margin-top:2px;}
+
+/* CHAT AREA */
+.chat-area{display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+.chat-header{display:flex;align-items:center;gap:0.8rem;padding:0.75rem 1.2rem;border-bottom:0.5px solid var(--border2);flex-shrink:0;background:var(--bg2);}
+.ch-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:600;flex-shrink:0;}
+.ch-info{flex:1;}
+.ch-name{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--text);}
+.ch-project{font-size:0.65rem;color:var(--text3);}
+.ch-status{display:flex;align-items:center;gap:0.3rem;font-size:0.65rem;color:var(--success);}
+.ch-status-dot{width:5px;height:5px;border-radius:50%;background:var(--success);}
+.chat-scroll{flex:1;overflow-y:auto;padding:1rem 1.2rem;display:flex;flex-direction:column;gap:0.6rem;}
+.chat-scroll::-webkit-scrollbar{width:3px;}
+.chat-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.chat-date{text-align:center;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:0.3rem 0;}
+.msg-row{display:flex;gap:0.5rem;align-items:flex-end;}
+.msg-row.me{flex-direction:row-reverse;}
+.msg-av-small{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.55rem;font-weight:600;flex-shrink:0;margin-bottom:2px;}
+.bubble{max-width:72%;padding:0.6rem 0.85rem;border-radius:3px;font-size:0.78rem;line-height:1.55;position:relative;}
+.bubble-them{background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);border-bottom-left-radius:0;}
+.bubble-me{background:rgba(201,168,76,0.1);border:0.5px solid var(--border);color:var(--text);border-bottom-right-radius:0;}
+.bubble-time{font-size:0.58rem;color:var(--text3);margin-top:3px;display:block;}
+.bubble-file{display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.7rem;background:var(--bg4);border:0.5px solid var(--border2);border-radius:3px;margin-top:0.4rem;cursor: pointer;transition:all 0.15s;}
+.bubble-file:hover{border-color:var(--border);}
+.bf-ico{font-size:1rem;}
+.bf-info{flex:1;}
+.bf-name{font-size:0.7rem;font-weight:500;color:var(--text);}
+.bf-size{font-size:0.6rem;color:var(--text3);}
+.bf-dl{font-size:0.6rem;color:var(--gold);}
+.chat-input-area{padding:0.75rem 1.2rem;border-top:0.5px solid var(--border2);background:var(--bg2);flex-shrink:0;}
+.chat-input-row{display:flex;gap:0.4rem;align-items:flex-end;}
+.chat-input-wrap{flex:1;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;overflow:hidden;transition:border-color 0.2s;}
+.chat-input-wrap:focus-within{border-color:var(--border);}
+.chat-textarea{width:100%;background:none;border:none;padding:0.55rem 0.8rem;font-family:'DM Sans',sans-serif;font-size:0.82rem;color:var(--text);resize:none;outline:none;cursor: pointer;min-height:38px;max-height:100px;line-height:1.5;}
+.chat-textarea::placeholder{color:var(--text3);}
+.chat-tools{display:flex;gap:0.2rem;padding:0.2rem 0.4rem;border-top:0.5px solid var(--border2);}
+.ct-btn{width:24px;height:24px;border-radius:2px;background:none;border:none;color:var(--text3);font-size:0.75rem;cursor: pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;}
+.ct-btn:hover{background:var(--bg4);color:var(--text);}
+.chat-send{padding:0.5rem 1rem;background:var(--gold);border:none;border-radius:3px;font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;align-self:flex-end;}
+.chat-send:hover{background:var(--gold-light);}
+
+/* CHAT RIGHT: ORDER SUMMARY */
+.chat-right{border-left:0.5px solid var(--border2);display:flex;flex-direction:column;overflow-y:auto;background:var(--bg2);}
+.chat-right::-webkit-scrollbar{width:3px;}
+.chat-right::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.cr-section{padding:0.9rem 1rem;border-bottom:0.5px solid var(--border2);}
+.cr-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.6rem;}
+.order-card{background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;padding:0.7rem 0.8rem;}
+.oc-row{display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;margin-bottom:0.3rem;}
+.oc-row:last-child{margin-bottom:0;}
+.oc-label{color:var(--text3);}
+.oc-val{color:var(--text);font-weight:500;}
+.oc-val.gold{color:var(--gold);font-family:'Syne',sans-serif;font-weight:700;}
+.oc-val.ok{color:var(--success);}
+.escrow-bar{margin-top:0.7rem;}
+.eb-label{display:flex;justify-content:space-between;font-size:0.62rem;color:var(--text3);margin-bottom:0.3rem;}
+.eb-track{height:4px;background:var(--bg5);border-radius:2px;overflow:hidden;}
+.eb-fill{height:100%;background:var(--success);border-radius:2px;transition:width 1s ease;}
+.eb-stages{display:flex;gap:0.3rem;margin-top:0.5rem;}
+.eb-stage{flex:1;font-size:0.55rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);text-align:center;padding:3px 0;border-radius:2px;border:0.5px solid var(--border2);}
+.eb-stage.done{background:rgba(76,175,125,0.1);color:var(--success);border-color:rgba(76,175,125,0.2);}
+.eb-stage.current{background:rgba(201,168,76,0.1);color:var(--gold);border-color:var(--border);}
+.action-btns{display:flex;flex-direction:column;gap:0.4rem;margin-top:0.6rem;}
+.ab{width:100%;padding:0.5rem;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:500;letter-spacing:0.05em;text-transform:uppercase;cursor: pointer;transition:all 0.2s;border:0.5px solid;}
+.ab-gold{background:var(--gold);border-color:var(--gold);color:var(--bg);}
+.ab-gold:hover{background:var(--gold-light);}
+.ab-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);color:var(--success);}
+.ab-ok:hover{background:rgba(76,175,125,0.18);}
+.ab-ghost{background:none;border-color:var(--border2);color:var(--text2);}
+.ab-ghost:hover{border-color:var(--border);color:var(--text);}
+.ab-err{background:rgba(224,85,85,0.08);border-color:rgba(224,85,85,0.25);color:var(--error);}
+.ab-err:hover{background:rgba(224,85,85,0.15);}
+.file-share-list{display:flex;flex-direction:column;gap:0.3rem;}
+.fs-item{display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0.5rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;cursor: pointer;transition:all 0.15s;}
+.fs-item:hover{border-color:var(--border);}
+.fs-ico{font-size:0.85rem;}
+.fs-name{font-size:0.7rem;color:var(--text);flex:1;}
+.fs-dl{font-size:0.6rem;color:var(--gold);}
+
+/* ══════════════════════════════
+   ÖDEME & ESCROW PANEL
+══════════════════════════════ */
+.payment-layout{display:grid;grid-template-columns:1fr 380px;height:100%;overflow:hidden;}
+.payment-left{overflow-y:auto;padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1rem;}
+.payment-left::-webkit-scrollbar{width:3px;}
+.payment-left::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.payment-right{border-left:0.5px solid var(--border2);overflow-y:auto;padding:1.2rem;display:flex;flex-direction:column;gap:0.75rem;background:var(--bg2);}
+.payment-right::-webkit-scrollbar{width:3px;}
+.payment-right::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.section-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:4px;padding:1.2rem 1.4rem;}
+.sc-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:0.5px solid var(--border2);display:flex;align-items:center;gap:0.5rem;}
+.sc-title-ico{font-size:0.9rem;}
+
+/* TRANSACTION LIST */
+.tx-list{display:flex;flex-direction:column;gap:0.4rem;}
+.tx-item{display:flex;align-items:center;gap:0.8rem;padding:0.75rem 0.9rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;cursor: pointer;transition:all 0.15s;}
+.tx-item:hover{border-color:var(--border);}
+.tx-ico{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0;}
+.tx-info{flex:1;}
+.tx-name{font-size:0.78rem;font-weight:500;color:var(--text);}
+.tx-meta{font-size:0.65rem;color:var(--text3);margin-top:1px;}
+.tx-amount{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;}
+.tx-amount.debit{color:var(--error);}
+.tx-amount.credit{color:var(--success);}
+.tx-amount.escrow{color:var(--gold);}
+.tx-status{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.07em;padding:2px 6px;border-radius:2px;}
+.txs-done{background:rgba(76,175,125,0.1);color:var(--success);}
+.txs-hold{background:rgba(201,168,76,0.1);color:var(--gold);}
+.txs-pending{background:rgba(74,158,202,0.1);color:var(--info);}
+
+/* ESCROW DETAIL */
+.escrow-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:4px;padding:1rem 1.2rem;}
+.ec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;}
+.ec-title{font-family:'Syne',sans-serif;font-size:0.85rem;font-weight:700;color:var(--text);}
+.ec-badge{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.07em;padding:3px 8px;border-radius:2px;}
+.ec-rows{display:flex;flex-direction:column;gap:0.35rem;margin-bottom:0.8rem;}
+.ec-row{display:flex;justify-content:space-between;font-size:0.75rem;}
+.ec-label{color:var(--text3);}
+.ec-val{color:var(--text);font-weight:500;}
+.ec-val.gold{color:var(--gold);font-family:'Syne',sans-serif;font-weight:700;}
+.ec-progress{height:6px;background:var(--bg5);border-radius:3px;overflow:hidden;margin-bottom:0.5rem;}
+.ec-prog-fill{height:100%;border-radius:3px;transition:width 1.2s ease;}
+.ec-stages{display:flex;gap:0.25rem;}
+.ec-stage{flex:1;font-size:0.56rem;text-transform:uppercase;letter-spacing:0.05em;text-align:center;padding:3px 2px;border-radius:2px;border:0.5px solid var(--border2);color:var(--text3);}
+.ec-stage.done{background:rgba(76,175,125,0.1);color:var(--success);border-color:rgba(76,175,125,0.2);}
+.ec-stage.active{background:rgba(201,168,76,0.1);color:var(--gold);border-color:var(--border);}
+
+/* PAYMENT METHOD */
+.pm-cards{display:flex;flex-direction:column;gap:0.4rem;}
+.pm-card{display:flex;align-items:center;gap:0.8rem;padding:0.7rem 0.9rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;cursor: pointer;transition:all 0.15s;}
+.pm-card:hover{border-color:var(--border);}
+.pm-card.selected-pm{border-color:var(--gold);background:rgba(201,168,76,0.04);}
+.pm-ico{width:32px;height:22px;background:var(--bg4);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:var(--text2);flex-shrink:0;border:0.5px solid var(--border2);}
+.pm-info{flex:1;}
+.pm-name{font-size:0.78rem;font-weight:500;color:var(--text);}
+.pm-sub{font-size:0.62rem;color:var(--text3);}
+.pm-radio{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0;position:relative;}
+.selected-pm .pm-radio::after{content:'';position:absolute;inset:2px;border-radius:50%;background:var(--gold);}
+
+/* SUMMARY CARD */
+.sum-card{background:var(--bg3);border:0.5px solid var(--border);border-radius:4px;padding:1rem 1.2rem;}
+.sum-rows{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.8rem;}
+.sum-row{display:flex;justify-content:space-between;font-size:0.78rem;}
+.sum-label{color:var(--text3);}
+.sum-val{color:var(--text);font-weight:500;}
+.sum-divider{height:0.5px;background:var(--border2);margin:0.5rem 0;}
+.sum-total{display:flex;justify-content:space-between;font-size:0.9rem;}
+.sum-total-label{font-family:'Syne',sans-serif;font-weight:700;color:var(--text);}
+.sum-total-val{font-family:'Syne',sans-serif;font-weight:800;color:var(--gold);}
+.pay-btn{width:100%;padding:0.7rem;background:var(--gold);border:none;border-radius:3px;font-family:'Syne',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:var(--bg);cursor: pointer;transition:all 0.2s;margin-top:0.8rem;position:relative;overflow:hidden;}
+.pay-btn::after{content:'';position:absolute;inset:0;background:var(--gold-light);opacity:0;transition:opacity 0.2s;}
+.pay-btn:hover::after{opacity:1;}
+.pay-btn span{position:relative;z-index:1;}
+.secure-note{display:flex;align-items:center;gap:0.4rem;font-size:0.65rem;color:var(--text3);margin-top:0.5rem;justify-content:center;}
+
+/* ══════════════════════════════
+   ÜRETİM TAKİP PANEL
+══════════════════════════════ */
+.track-layout{display:grid;grid-template-columns:300px 1fr;height:100%;overflow:hidden;}
+.track-list{border-right:0.5px solid var(--border2);overflow-y:auto;background:var(--bg2);}
+.track-list::-webkit-scrollbar{width:3px;}
+.track-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.tl-header{padding:0.75rem 1rem;border-bottom:0.5px solid var(--border2);font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);display:flex;align-items:center;justify-content:space-between;}
+.tl-item{padding:0.8rem 1rem;border-bottom:0.5px solid var(--border2);cursor: pointer;transition:background 0.15s;position:relative;}
+.tl-item:hover{background:var(--bg3);}
+.tl-item.active-tl{background:var(--bg3);border-left:2px solid var(--gold);}
+.tl-name{font-size:0.8rem;font-weight:500;color:var(--text);margin-bottom:2px;}
+.tl-producer{font-size:0.65rem;color:var(--text3);margin-bottom:0.4rem;}
+.tl-progress-row{display:flex;align-items:center;gap:0.5rem;}
+.tl-bar{flex:1;height:3px;background:var(--bg5);border-radius:2px;overflow:hidden;}
+.tl-bar-fill{height:100%;border-radius:2px;transition:width 0.8s ease;}
+.tl-pct{font-size:0.6rem;color:var(--text3);width:28px;text-align:right;}
+.tl-stage-badge{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.06em;padding:2px 5px;border-radius:2px;margin-top:0.3rem;display:inline-block;}
+
+/* TRACK DETAIL */
+.track-detail{overflow-y:auto;padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1rem;}
+.track-detail::-webkit-scrollbar{width:3px;}
+.track-detail::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.td-header{display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:start;}
+.td-name{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text);line-height:1.1;margin-bottom:0.3rem;}
+.td-meta{font-size:0.78rem;color:var(--text2);}
+.td-score-wrap{text-align:right;}
+.td-score{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--gold);line-height:1;}
+.td-score-label{font-size:0.6rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:1.5rem;}
+.timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:1px;background:var(--border2);}
+.tl-step{position:relative;padding-bottom:1.2rem;}
+.tl-step:last-child{padding-bottom:0;}
+.tl-dot{position:absolute;left:-1.5rem;top:4px;width:14px;height:14px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:0.6rem;background:var(--bg);}
+.tl-dot.done{border-color:var(--success);color:var(--success);}
+.tl-dot.current{border-color:var(--gold);color:var(--gold);animation:pulseDot 2s infinite;}
+.tl-dot.pending{border-color:var(--border);color:var(--text3);}
+@keyframes pulseDot{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,0.4);}50%{box-shadow:0 0 0 6px rgba(201,168,76,0);}}
+.tl-content{padding-left:0.3rem;}
+.tl-step-title{font-size:0.82rem;font-weight:500;color:var(--text);margin-bottom:2px;}
+.tl-step-title.done{color:var(--text2);}
+.tl-step-title.current{color:var(--gold);}
+.tl-step-desc{font-size:0.7rem;color:var(--text3);line-height:1.5;}
+.tl-step-time{font-size:0.62rem;color:var(--text3);margin-top:3px;}
+.tl-step-img{margin-top:0.5rem;display:flex;gap:0.4rem;}
+.tl-img-thumb{width:48px;height:36px;background:var(--bg4);border:0.5px solid var(--border2);border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:1rem;cursor: pointer;}
+
+/* PRODUCTION STATS */
+.prod-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;}
+.ps-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:3px;padding:0.7rem 0.8rem;}
+.psc-val{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;color:var(--text);line-height:1;}
+.psc-val span{color:var(--gold);}
+.psc-label{font-size:0.58rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--text3);margin-top:3px;}
+
+/* QC CHECKLIST */
+.qc-list{display:flex;flex-direction:column;gap:0.35rem;}
+.qc-item{display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.7rem;background:var(--bg3);border:0.5px solid var(--border2);border-radius:3px;font-size:0.75rem;cursor: pointer;transition:all 0.15s;}
+.qc-item:hover{border-color:var(--border);}
+.qc-check{width:16px;height:16px;border-radius:2px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.65rem;flex-shrink:0;}
+.qc-check.done{background:var(--success);border-color:var(--success);color:#fff;}
+.qc-check.fail{background:var(--error);border-color:var(--error);color:#fff;}
+.qc-check.wait{background:var(--bg4);border-color:var(--border2);color:var(--text3);}
+.qc-text{flex:1;color:var(--text2);}
+.qc-text.done-text{color:var(--text3);text-decoration:line-through;}
+.qc-date{font-size:0.62rem;color:var(--text3);}
+
+/* TOAST */
+.ts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:500;display:flex;flex-direction:column;gap:0.4rem;pointer-events:none;width:300px;}
+.tt{display:flex;align-items:flex-start;gap:0.5rem;padding:0.6rem 0.8rem;border-radius:3px;border:0.5px solid;pointer-events:all;animation:tIn 0.3s cubic-bezier(0.34,1.56,0.64,1);position:relative;overflow:hidden;}
+.tt::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;}
+.tt-ok{background:rgba(76,175,125,0.1);border-color:rgba(76,175,125,0.25);}
+.tt-ok::before{background:var(--success);}
+.tt-info{background:rgba(74,158,202,0.1);border-color:rgba(74,158,202,0.25);}
+.tt-info::before{background:var(--info);}
+.tt-warn{background:rgba(232,162,58,0.1);border-color:rgba(232,162,58,0.25);}
+.tt-warn::before{background:var(--warn);}
+.tt-b{flex:1;}
+.tt-t{font-size:0.73rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.tt-m{font-size:0.66rem;color:var(--text2);line-height:1.4;}
+.tt-c{background:none;border:none;color:var(--text3);font-size:0.72rem;cursor: pointer;padding:0;}
+@keyframes tIn{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cring"></div>
+
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tlogo">OMNI<span>IDEA</span></div>
+    <div class="tbread" id="bread">İletişim <b>/ Mesajlar</b></div>
+    <div class="ttabs">
+      <button class="ttab active" id="tab-msg" onclick="switchPanel('msg',this)">💬 Mesajlar<span class="ttab-badge">3</span></button>
+      <button class="ttab" id="tab-pay" onclick="switchPanel('pay',this)">💳 Ödemeler & Escrow</button>
+      <button class="ttab" id="tab-track" onclick="switchPanel('track',this)">📦 Üretim Takip</button>
+    </div>
+    <div class="tr">
+      <button class="tb tb-g" onclick="window.location='omnidea-dashboard-entegre.html'">← Dashboard</button>
+      <div class="av">HB</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <span class="sl">Navigasyon</span>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">⊞</span> Dashboard</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">◈</span> Stüdyo</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">⬡</span> Pazar Yeri</div>
+    <div class="si active" onclick="setNav(this)"><span class="si-ico">💬</span> Mesajlar <span class="si-badge">3</span></div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">💳</span> Ödemeler</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">📦</span> Üretim Takip</div>
+    <div class="sdiv"></div>
+    <span class="sl">Projeler</span>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">🪑</span> Berjer Koltuk</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">💎</span> Gold Yüzük</div>
+    <div class="si" onclick="setNav(this)"><span class="si-ico">👟</span> Nike Air Konsept</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- ══ MESAJ PANELİ ══ -->
+    <div class="panel active" id="panel-msg">
+      <div class="msg-layout">
+
+        <!-- CONV LIST -->
+        <div class="conv-list">
+          <div class="conv-search"><input type="text" placeholder="Konuşma ara..."></div>
+          <div class="conv-scroll" id="convScroll"></div>
+        </div>
+
+        <!-- CHAT AREA -->
+        <div class="chat-area">
+          <div class="chat-header">
+            <div class="ch-av" id="chAv" style="background:#C9A84C22;color:#C9A84C;border:0.5px solid #C9A84C44;">AF</div>
+            <div class="ch-info">
+              <div class="ch-name" id="chName">Artisan Furniture Co.</div>
+              <div class="ch-project" id="chProject">Berjer Koltuk — Teklif: $1.200 · 18 Gün</div>
+            </div>
+            <div class="ch-status"><div class="ch-status-dot"></div>Çevrimiçi</div>
+          </div>
+
+          <div class="chat-scroll" id="chatScroll">
+            <div class="chat-date">Bugün, 14:00</div>
+
+            <div class="msg-row">
+              <div class="msg-av-small" style="background:#C9A84C22;color:#C9A84C;">AF</div>
+              <div>
+                <div class="bubble bubble-them">Merhaba, projenizi inceledim. Velvet kumaşın temin süresi yaklaşık 5 iş günü. Bu süreyi hesaba katarak 18 günlük bir teslim takvimi önerdim.<span class="bubble-time">14:22</span></div>
+              </div>
+            </div>
+
+            <div class="msg-row me">
+              <div class="msg-av-small" style="background:rgba(201,168,76,0.15);color:var(--gold);">HB</div>
+              <div>
+                <div class="bubble bubble-me">Anlıyorum, teşekkürler. Ayak kesiti için 304 paslanmaz çelik kullanabilir misiniz? Ø3.5cm olmasını istiyorum.<span class="bubble-time">14:35</span></div>
+              </div>
+            </div>
+
+            <div class="msg-row">
+              <div class="msg-av-small" style="background:#C9A84C22;color:#C9A84C;">AF</div>
+              <div>
+                <div class="bubble bubble-them">Evet, Ø3.5cm 304 paslanmaz çelik stokta mevcut. Fiyat teklifime dahil. Ayrıca aşağıdaki örnek çalışmalarımıza bakabilirsiniz:
+                  <div class="bubble-file"><span class="bf-ico">📄</span><div class="bf-info"><div class="bf-name">referans_calismalar.pdf</div><div class="bf-size">3.2 MB</div></div><span class="bf-dl">İndir ↓</span></div>
+                  <span class="bubble-time">14:41</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="msg-row me">
+              <div class="msg-av-small" style="background:rgba(201,168,76,0.15);color:var(--gold);">HB</div>
+              <div>
+                <div class="bubble bubble-me">Harika, dosyaları inceledim. RAL 8016 renk kodu için stok durumunuz nasıl?<span class="bubble-time">15:02</span></div>
+              </div>
+            </div>
+
+            <div class="msg-row">
+              <div class="msg-av-small" style="background:#C9A84C22;color:#C9A84C;">AF</div>
+              <div>
+                <div class="bubble bubble-them">RAL 8016 için boyamayı biz yapıyoruz, stok sorunu yok. Teklifimizi kabul etmeniz durumunda hemen başlayabiliriz.<span class="bubble-time">15:18</span></div>
+              </div>
+            </div>
+
+            <div class="chat-date">Şimdi</div>
+          </div>
+
+          <div class="chat-input-area">
+            <div class="chat-input-row">
+              <div class="chat-input-wrap">
+                <textarea class="chat-textarea" id="chatInput" placeholder="Mesaj yazın" data-i18n-ph="type-msg"..." rows="1" oninput="autoResize(this)"></textarea>
+                <div class="chat-tools">
+                  <button class="ct-btn" title="Dosya ekle" onclick="toast('info','Dosya Ekle','Dosya ekleme özelliği yakında aktif olacak.')">⊕</button>
+                  <button class="ct-btn" title="Teknik dosya paylaş" onclick="toast('info','Teknik Dosya','STL, DXF ve teknik dosyalar gönderme yakında aktif.')">📐</button>
+                  <button class="ct-btn" title="Teklif gönder" onclick="toast('info','Teklif','Teklif modülü yakında burada aktif olacak.')">✦</button>
+                  <button class="ct-btn" title="Emoji" onclick="toast('info','Emoji','Emoji paneli yakında aktif olacak.')">☺</button>
+                </div>
+              </div>
+              <button class="chat-send" onclick="sendMsg()" data-i18n="send">Gönder</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHAT RIGHT PANEL -->
+        <div class="chat-right">
+          <div class="cr-section">
+            <div class="cr-title">Sipariş Özeti</div>
+            <div class="order-card">
+              <div class="oc-row"><span class="oc-label">Proje</span><span class="oc-val">Berjer Koltuk v3</span></div>
+              <div class="oc-row"><span class="oc-label">Üretici</span><span class="oc-val">Artisan Furn. Co.</span></div>
+              <div class="oc-row"><span class="oc-label">Teklif Fiyatı</span><span class="oc-val gold">$1.200</span></div>
+              <div class="oc-row"><span class="oc-label">Teslim Süresi</span><span class="oc-val">18 Gün</span></div>
+              <div class="oc-row"><span class="oc-label">Durum</span><span class="oc-val ok">Teklif Aşamasında</span></div>
+            </div>
+            <div class="escrow-bar">
+              <div class="eb-label"><span>Escrow İlerlemesi</span><span>0%</span></div>
+              <div class="eb-track"><div class="eb-fill" style="width:0%;background:var(--text3);"></div></div>
+              <div class="eb-stages">
+                <div class="eb-stage current">Teklif</div>
+                <div class="eb-stage">Ödeme</div>
+                <div class="eb-stage">Üretim</div>
+                <div class="eb-stage">Onay</div>
+                <div class="eb-stage">Teslim</div>
+              </div>
+            </div>
+            <div class="action-btns">
+              <button class="ab ab-gold" onclick="acceptOffer()">Teklifi Kabul Et & Öde ✦</button>
+              <button class="ab ab-ghost" onclick="toast('info','Revizyon İsteği','Üreticiye revizyon talebi gönderildi.')">Revizyon İste</button>
+              <button class="ab ab-err" onclick="toast('warn','Teklif Reddedildi','Üretici bilgilendirildi.')">Teklifi Reddet</button>
+            </div>
+          </div>
+
+          <div class="cr-section">
+            <div class="cr-title">Paylaşılan Dosyalar</div>
+            <div class="file-share-list">
+              <div class="fs-item"><span class="fs-ico">⬡</span><span class="fs-name">model_v3.stl</span><span class="fs-dl">↓</span></div>
+              <div class="fs-item"><span class="fs-ico">📐</span><span class="fs-name">kesit.dxf</span><span class="fs-dl">↓</span></div>
+              <div class="fs-item"><span class="fs-ico">📄</span><span class="fs-name">uretim_notu.pdf</span><span class="fs-dl">↓</span></div>
+              <div class="fs-item"><span class="fs-ico">📄</span><span class="fs-name">referans_calismalar.pdf</span><span class="fs-dl">↓</span></div>
+            </div>
+          </div>
+
+          <div class="cr-section">
+            <div class="cr-title">Üretici Profili</div>
+            <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.6rem;">
+              <div style="width:36px;height:36px;border-radius:50%;background:#C9A84C22;color:#C9A84C;border:0.5px solid #C9A84C44;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:600;">AF</div>
+              <div><div style="font-size:0.8rem;font-weight:500;color:var(--text);">Artisan Furniture Co.</div><div style="font-size:0.63rem;color:var(--text3);">İstanbul, TR · ISO 9001</div></div>
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+              <span style="font-size:0.58rem;padding:2px 6px;border-radius:2px;background:rgba(201,168,76,0.1);color:var(--gold);border:0.5px solid var(--border);">Ahşap Uzmanı</span>
+              <span style="font-size:0.58rem;padding:2px 6px;border-radius:2px;background:rgba(201,168,76,0.1);color:var(--gold);border:0.5px solid var(--border);">ISO 9001</span>
+              <span style="font-size:0.58rem;padding:2px 6px;border-radius:2px;background:rgba(201,168,76,0.1);color:var(--gold);border:0.5px solid var(--border);">Doğrulanmış</span>
+            </div>
+            <div style="font-size:0.72rem;color:var(--gold);">★★★★★ 4.9 (128 değerlendirme)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ÖDEME & ESCROW ══ -->
+    <div class="panel" id="panel-pay">
+      <div class="payment-layout">
+        <div class="payment-left">
+
+          <div style="font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text);">Ödemeler & Escrow</div>
+
+          <!-- ESCROW CARDS -->
+          <div class="section-card">
+            <div class="sc-title"><span class="sc-title-ico">🔒</span> Aktif Escrow Hesapları</div>
+            <div style="display:flex;flex-direction:column;gap:0.6rem;">
+              <div class="escrow-card">
+                <div class="ec-header">
+                  <div class="ec-title">Berjer Koltuk — Artisan Furniture Co.</div>
+                  <span class="ec-badge" style="background:rgba(201,168,76,0.1);color:var(--gold);">Üretimde</span>
+                </div>
+                <div class="ec-rows">
+                  <div class="ec-row"><span class="ec-label">Escrow Tutarı</span><span class="ec-val gold">$1.200</span></div>
+                  <div class="ec-row"><span class="ec-label">Komisyon (%5)</span><span class="ec-val">$60</span></div>
+                  <div class="ec-row"><span class="ec-label">Üreticiye Ödenecek</span><span class="ec-val">$1.140</span></div>
+                  <div class="ec-row"><span class="ec-label">Tahmini Teslim</span><span class="ec-val">2 Nisan 2025</span></div>
+                </div>
+                <div class="ec-progress"><div class="ec-prog-fill" style="width:55%;background:var(--gold);"></div></div>
+                <div class="ec-stages">
+                  <div class="ec-stage done">Ödeme</div>
+                  <div class="ec-stage done">Üretim Başladı</div>
+                  <div class="ec-stage active">Üretimde</div>
+                  <div class="ec-stage">Kalite Kontrol</div>
+                  <div class="ec-stage">Teslim</div>
+                </div>
+              </div>
+
+              <div class="escrow-card">
+                <div class="ec-header">
+                  <div class="ec-title">Gold Yüzük — Gold Jewelers Ltd.</div>
+                  <span class="ec-badge" style="background:rgba(76,175,125,0.1);color:var(--success);">Teslimatta</span>
+                </div>
+                <div class="ec-rows">
+                  <div class="ec-row"><span class="ec-label">Escrow Tutarı</span><span class="ec-val gold">$680</span></div>
+                  <div class="ec-row"><span class="ec-label">Durum</span><span class="ec-val" style="color:var(--success);">Kargoda · DHL Express</span></div>
+                </div>
+                <div class="ec-progress"><div class="ec-prog-fill" style="width:88%;background:var(--success);"></div></div>
+                <div class="ec-stages">
+                  <div class="ec-stage done">Ödeme</div>
+                  <div class="ec-stage done">Üretim</div>
+                  <div class="ec-stage done">Kalite Kontrol</div>
+                  <div class="ec-stage active">Teslimatta</div>
+                  <div class="ec-stage">Tamamlandı</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRANSACTIONS -->
+          <div class="section-card">
+            <div class="sc-title"><span class="sc-title-ico">📋</span> İşlem Geçmişi</div>
+            <div class="tx-list">
+              <div class="tx-item">
+                <div class="tx-ico" style="background:rgba(76,175,125,0.1);color:var(--success);">↓</div>
+                <div class="tx-info"><div class="tx-name">Nike Air Konsept — Tamamlandı</div><div class="tx-meta">Hanoi Craft Studio · 15 Mar 2025</div></div>
+                <div><div class="tx-amount credit">+$2.100</div><span class="tx-status txs-done">Ödendi</span></div>
+              </div>
+              <div class="tx-item">
+                <div class="tx-ico" style="background:rgba(201,168,76,0.1);color:var(--gold);">🔒</div>
+                <div class="tx-info"><div class="tx-name">Berjer Koltuk — Escrow Kilitlendi</div><div class="tx-meta">Artisan Furniture Co. · 10 Mar 2025</div></div>
+                <div><div class="tx-amount escrow">-$1.200</div><span class="tx-status txs-hold">Escrow'da</span></div>
+              </div>
+              <div class="tx-item">
+                <div class="tx-ico" style="background:rgba(201,168,76,0.1);color:var(--gold);">🔒</div>
+                <div class="tx-info"><div class="tx-name">Gold Yüzük — Escrow Kilitlendi</div><div class="tx-meta">Gold Jewelers · 8 Mar 2025</div></div>
+                <div><div class="tx-amount escrow">-$680</div><span class="tx-status txs-hold">Escrow'da</span></div>
+              </div>
+              <div class="tx-item">
+                <div class="tx-ico" style="background:rgba(224,85,85,0.1);color:var(--error);">↑</div>
+                <div class="tx-info"><div class="tx-name">Platform Komisyonu</div><div class="tx-meta">Araç Jant Kapağı · 1 Mar 2025</div></div>
+                <div><div class="tx-amount debit">-$62</div><span class="tx-status txs-done">Ödendi</span></div>
+              </div>
+              <div class="tx-item">
+                <div class="tx-ico" style="background:rgba(76,175,125,0.1);color:var(--success);">↓</div>
+                <div class="tx-info"><div class="tx-name">Araç Jant Kapağı — Tamamlandı</div><div class="tx-meta">Ankara Metal Works · 1 Mar 2025</div></div>
+                <div><div class="tx-amount credit">+$1.240</div><span class="tx-status txs-done">Ödendi</span></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: PAYMENT METHOD + SUMMARY -->
+        <div class="payment-right">
+          <div style="font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:var(--text);">Yeni Ödeme</div>
+
+          <div>
+            <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.5rem;">Proje Seç</div>
+            <select style="width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:2px;padding:0.45rem 0.7rem;font-family:'DM Sans',sans-serif;font-size:0.8rem;color:var(--text);outline:none;cursor: default;appearance:none;">
+              <option>Berjer Koltuk — Artisan Furniture Co.</option>
+              <option>Gold Yüzük — Gold Jewelers Ltd.</option>
+            </select>
+          </div>
+
+          <div>
+            <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.5rem;">Ödeme Yöntemi</div>
+            <div class="pm-cards">
+              <div class="pm-card selected-pm" onclick="selectPM(this)">
+                <div class="pm-ico">VISA</div>
+                <div class="pm-info"><div class="pm-name">Visa **** 4242</div><div class="pm-sub">Son kullanım: 12/27</div></div>
+                <div class="pm-radio"></div>
+              </div>
+              <div class="pm-card" onclick="selectPM(this)">
+                <div class="pm-ico">MC</div>
+                <div class="pm-info"><div class="pm-name">Mastercard **** 8891</div><div class="pm-sub">Son kullanım: 08/26</div></div>
+                <div class="pm-radio"></div>
+              </div>
+              <div class="pm-card" onclick="selectPM(this)">
+                <div class="pm-ico">₿</div>
+                <div class="pm-info"><div class="pm-name">Kripto Para</div><div class="pm-sub">BTC · ETH · USDT</div></div>
+                <div class="pm-radio"></div>
+              </div>
+              <div class="pm-card" onclick="selectPM(this)">
+                <div class="pm-ico" style="font-size:0.5rem;">BANK</div>
+                <div class="pm-info"><div class="pm-name">Banka Havalesi</div><div class="pm-sub">SWIFT · IBAN</div></div>
+                <div class="pm-radio"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sum-card">
+            <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:0.6rem;">Ödeme Özeti</div>
+            <div class="sum-rows">
+              <div class="sum-row"><span class="sum-label">Üretim Bedeli</span><span class="sum-val">$1.200</span></div>
+              <div class="sum-row"><span class="sum-label">Platform Komisyonu (%5)</span><span class="sum-val">$60</span></div>
+              <div class="sum-row"><span class="sum-label">Escrow Güvence</span><span class="sum-val" style="color:var(--success);">Dahil ✓</span></div>
+            </div>
+            <div class="sum-divider"></div>
+            <div class="sum-total"><span class="sum-total-label">Toplam</span><span class="sum-total-val">$1.260</span></div>
+            <button class="pay-btn" onclick="makePayment()"><span>🔒 Güvenli Öde — $1.260</span></button>
+            <div class="secure-note">🔒 256-bit SSL şifrelemesi · Escrow korumalı</div>
+          </div>
+
+          <div style="background:rgba(76,175,125,0.05);border:0.5px solid rgba(76,175,125,0.2);border-radius:3px;padding:0.7rem 0.9rem;font-size:0.7rem;color:var(--success);line-height:1.6;">
+            <strong style="display:block;margin-bottom:0.2rem;">Escrow Güvencesi</strong>
+            Ödemeniz güvenli escrow hesabına alınır. Ürünü teslim alıp onaylayana kadar üreticiye aktarılmaz. Sorun olması durumunda tam iade garantisi mevcuttur.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ÜRETİM TAKİP ══ -->
+    <div class="panel" id="panel-track">
+      <div class="track-layout">
+        <div class="track-list">
+          <div class="tl-header">Aktif Üretimler <span style="color:var(--gold);">3</span></div>
+          <div id="trackListItems"></div>
+        </div>
+
+        <div class="track-detail" id="trackDetail">
+          <div class="td-header">
+            <div>
+              <div class="td-name">Berjer Koltuk — Modern Tasarım</div>
+              <div class="td-meta">Artisan Furniture Co. · İstanbul, TR · Başlangıç: 10 Mar 2025</div>
+            </div>
+            <div class="td-score-wrap">
+              <div class="td-score">55<span style="font-size:0.8rem;color:var(--text3);">%</span></div>
+              <div class="td-score-label">Tamamlandı</div>
+            </div>
+          </div>
+
+          <div class="prod-stats">
+            <div class="ps-card"><div class="psc-val">18</div><div class="psc-label">Kalan Gün</div></div>
+            <div class="ps-card"><div class="psc-val"><span>2</span> Nisan</div><div class="psc-label">Tahmini Teslim</div></div>
+            <div class="ps-card"><div class="psc-val">$<span>1.2K</span></div><div class="psc-label">Escrow'da</div></div>
+            <div class="ps-card"><div class="psc-val" style="color:var(--gold);">4.9★</div><div class="psc-label">Üretici Puanı</div></div>
+          </div>
+
+          <div class="section-card">
+            <div class="sc-title"><span class="sc-title-ico">📍</span> Üretim Zaman Çizelgesi</div>
+            <div class="timeline">
+              <div class="tl-step">
+                <div class="tl-dot done">✓</div>
+                <div class="tl-content">
+                  <div class="tl-step-title done">Sipariş Onaylandı</div>
+                  <div class="tl-step-desc">Tasarım dosyaları teslim edildi. Üretici tarafından onaylandı.</div>
+                  <div class="tl-step-time">10 Mar 2025, 09:15</div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot done">✓</div>
+                <div class="tl-content">
+                  <div class="tl-step-title done">Malzeme Temini</div>
+                  <div class="tl-step-desc">Velvet kumaş, paslanmaz çelik ve ahşap çerçeve temin edildi.</div>
+                  <div class="tl-step-time">13 Mar 2025, 14:30</div>
+                  <div class="tl-step-img">
+                    <div class="tl-img-thumb">🧵</div>
+                    <div class="tl-img-thumb">🔩</div>
+                    <div class="tl-img-thumb">🪵</div>
+                  </div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot done">✓</div>
+                <div class="tl-content">
+                  <div class="tl-step-title done">İskelet Üretimi</div>
+                  <div class="tl-step-desc">Ahşap ve metal iskelet tamamlandı. Boyama aşamasına geçildi.</div>
+                  <div class="tl-step-time">16 Mar 2025, 11:00</div>
+                  <div class="tl-step-img">
+                    <div class="tl-img-thumb">🪑</div>
+                    <div class="tl-img-thumb">📷</div>
+                  </div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot current">◉</div>
+                <div class="tl-content">
+                  <div class="tl-step-title current">Döşeme & Boyama ← Şu An</div>
+                  <div class="tl-step-desc">RAL 8016 boya uygulanıyor. Velvet döşeme için kesim yapıldı.</div>
+                  <div class="tl-step-time">Devam ediyor...</div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot pending">○</div>
+                <div class="tl-content">
+                  <div class="tl-step-title">Kalite Kontrol</div>
+                  <div class="tl-step-desc">Boyut ölçümleri, yük testi ve görsel inceleme yapılacak.</div>
+                  <div class="tl-step-time">Bekleniyor — ~22 Mar 2025</div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot pending">○</div>
+                <div class="tl-content">
+                  <div class="tl-step-title">Paketleme & Kargo</div>
+                  <div class="tl-step-desc">Koruyucu ambalaj, DHL Express ile kargo.</div>
+                  <div class="tl-step-time">Bekleniyor — ~28 Mar 2025</div>
+                </div>
+              </div>
+              <div class="tl-step">
+                <div class="tl-dot pending">○</div>
+                <div class="tl-content">
+                  <div class="tl-step-title">Teslim & Escrow Serbest Bırakma</div>
+                  <div class="tl-step-desc">Teslim onayınızın ardından escrow üreticiye aktarılır.</div>
+                  <div class="tl-step-time">Bekleniyor — ~2 Nis 2025</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="section-card">
+            <div class="sc-title"><span class="sc-title-ico">✓</span> Kalite Kontrol Listesi</div>
+            <div class="qc-list">
+              <div class="qc-item"><div class="qc-check done">✓</div><span class="qc-text done-text">Boyutlar ölçüldü (120×90×85 cm)</span><span class="qc-date">16 Mar</span></div>
+              <div class="qc-item"><div class="qc-check done">✓</div><span class="qc-text done-text">Malzeme kalite testi</span><span class="qc-date">14 Mar</span></div>
+              <div class="qc-item"><div class="qc-check wait">○</div><span class="qc-text">Renk kodu doğrulama (RAL 8016)</span><span class="qc-date">Bekleniyor</span></div>
+              <div class="qc-item"><div class="qc-check wait">○</div><span class="qc-text">120kg yük testi</span><span class="qc-date">Bekleniyor</span></div>
+              <div class="qc-item"><div class="qc-check wait">○</div><span class="qc-text">Montaj noktası kontrolü (4 vida)</span><span class="qc-date">Bekleniyor</span></div>
+              <div class="qc-item"><div class="qc-check wait">○</div><span class="qc-text">Final görsel inceleme & fotoğraflama</span><span class="qc-date">Bekleniyor</span></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:0.5rem;">
+            <button class="ab ab-ok" style="flex:1;" onclick="toast('ok','Onay İsteği Gönderildi','Üreticiden fotoğraf güncelleme isteği iletildi.')">📸 Fotoğraf Güncelleme İste</button>
+            <button class="ab ab-ghost" style="flex:1;" onclick="toast('info','Sorun Bildirildi','Platform desteği bilgilendirildi.')">⚠ Sorun Bildir</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="ts" id="ts"></div>
+
+<script>
+// CURSOR
+const cur=document.getElementById('cursor'),crn=document.getElementById('cring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx-3.5+'px';cur.style.top=my-3.5+'px';});
+(function aR(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;crn.style.left=rx-14+'px';crn.style.top=ry-14+'px';requestAnimationFrame(aR);})();
+document.addEventListener('mouseover',e=>{if(e.target.closest('button,a,.conv-item,.tx-item,.pm-card,.tl-item,.qc-item,.fs-item,.bubble-file,.si')){{cur.style.transform='scale(1.8)';crn.style.transform='scale(1.3)';crn.style.borderColor='rgba(201,168,76,0.6)';}}});
+document.addEventListener('mouseout',e=>{if(e.target.closest('button,a,.conv-item,.tx-item,.pm-card,.tl-item,.qc-item,.fs-item,.bubble-file,.si')){{cur.style.transform='scale(1)';crn.style.transform='scale(1)';crn.style.borderColor='rgba(201,168,76,0.3)';}}});
+
+// PANEL SWITCH
+const BREAD={msg:'İletişim <b>/ Mesajlar</b>',pay:'İletişim <b>/ Ödemeler & Escrow</b>',track:'İletişim <b>/ Üretim Takip</b>'};
+function switchPanel(p,btn){
+  document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.ttab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('panel-'+p).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('bread').innerHTML=BREAD[p]||'';
+}
+function setNav(el){document.querySelectorAll('.si').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+
+// CONVERSATIONS
+const CONVS=[
+  {av:'AF',clr:'#C9A84C',name:'Artisan Furniture Co.',project:'Berjer Koltuk',preview:'RAL 8016 için boyamayı biz yapıyoruz...',time:'15:18',unread:true,active:true},
+  {av:'MC',clr:'#4A9ECA',name:'MetalCraft Pro',project:'Berjer Koltuk',preview:'Teklifimizi güncelliyoruz, yarın...',time:'14:05',unread:true,active:false},
+  {av:'GJ',clr:'#9B59B6',name:'Gold Jewelers Ltd.',project:'Gold Yüzük Serisi',preview:'Kargo takip numarası: DHL...',time:'11:30',unread:true,active:false},
+  {av:'KM',clr:'#4CAF7D',name:'Konya Mobilya A.Ş.',project:'Berjer Koltuk',preview:'Teşekkürler, iyi çalışmalar.',time:'Dün',unread:false,active:false},
+  {av:'HC',clr:'#E05555',name:'Hanoi Craft Studio',project:'Nike Air Konsept',preview:'Üretim tamamlandı, kargo...',time:'15 Mar',unread:false,active:false},
+];
+function renderConvs(){
+  const s=document.getElementById('convScroll');s.innerHTML='';
+  CONVS.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='conv-item'+(c.active?' active-conv':'')+(c.unread?' unread-conv':'');
+    d.innerHTML=`<div class="conv-av" style="background:${c.clr}22;color:${c.clr};border:0.5px solid ${c.clr}44;">${c.av}</div><div class="conv-info"><div class="conv-name">${c.name}</div><div class="conv-project">${c.project}</div><div class="conv-preview">${c.preview}</div></div><div class="conv-time">${c.time}</div>`;
+    d.onclick=()=>{document.querySelectorAll('.conv-item').forEach(x=>x.classList.remove('active-conv'));d.classList.add('active-conv');d.classList.remove('unread-conv');CONVS[i].unread=false;};
+    s.appendChild(d);
+  });
+}
+
+// TRACK LIST
+const TRACKS=[
+  {ico:'🪑',name:'Berjer Koltuk',producer:'Artisan Furniture Co.',pct:55,stage:'Üretimde',stageClr:'aps-market',barClr:'var(--gold)'},
+  {ico:'💎',name:'Gold Yüzük Serisi',producer:'Gold Jewelers Ltd.',pct:88,stage:'Teslimatta',stageClr:'aps-prod',barClr:'var(--success)'},
+  {ico:'👟',name:'Nike Air Konsept',producer:'Hanoi Craft Studio',pct:100,stage:'Tamamlandı',stageClr:'aps-prod',barClr:'var(--success)'},
+];
+function renderTracks(){
+  const s=document.getElementById('trackListItems');s.innerHTML='';
+  TRACKS.forEach((t,i)=>{
+    const d=document.createElement('div');
+    d.className='tl-item'+(i===0?' active-tl':'');
+    d.innerHTML=`<div class="tl-name">${t.ico} ${t.name}</div><div class="tl-producer">${t.producer}</div><div class="tl-progress-row"><div class="tl-bar"><div class="tl-bar-fill" style="width:${t.pct}%;background:${t.barClr};"></div></div><div class="tl-pct">${t.pct}%</div></div><span class="tl-stage-badge ${t.stageClr}">${t.stage}</span>`;
+    d.onclick=()=>{document.querySelectorAll('.tl-item').forEach(x=>x.classList.remove('active-tl'));d.classList.add('active-tl');};
+    s.appendChild(d);
+  });
+}
+
+// SEND MESSAGE
+function sendMsg(){
+  const inp=document.getElementById('chatInput'),txt=inp.value.trim();
+  if(!txt)return;
+  const scroll=document.getElementById('chatScroll');
+  const row=document.createElement('div');row.className='msg-row me';
+  row.innerHTML=`<div class="msg-av-small" style="background:rgba(201,168,76,0.15);color:var(--gold);">HB</div><div><div class="bubble bubble-me">${txt}<span class="bubble-time">Şimdi</span></div></div>`;
+  scroll.appendChild(row);
+  inp.value='';inp.style.height='auto';scroll.scrollTop=scroll.scrollHeight;
+  setTimeout(()=>{
+    const r=document.createElement('div');r.className='msg-row';
+    r.innerHTML=`<div class="msg-av-small" style="background:#C9A84C22;color:#C9A84C;">AF</div><div><div class="bubble bubble-them">Mesajınız alındı, en kısa sürede yanıtlayacağım.<span class="bubble-time">Şimdi</span></div></div>`;
+    scroll.appendChild(r);scroll.scrollTop=scroll.scrollHeight;
+  },1100);
+}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,100)+'px';}
+document.getElementById('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+
+// ACCEPT OFFER
+function acceptOffer(){
+  toast('ok','Teklif Kabul Edildi!','Escrow hesabı oluşturuldu. Artisan Furniture Co. üretimi başlatabilir.');
+  setTimeout(()=>{
+    document.querySelector('.eb-fill').style.width='20%';
+    document.querySelectorAll('.eb-stage')[0].classList.add('done');
+    document.querySelectorAll('.eb-stage')[1].classList.add('current');
+  },800);
+}
+
+// PAYMENT
+function selectPM(el){document.querySelectorAll('.pm-card').forEach(p=>p.classList.remove('selected-pm'));el.classList.add('selected-pm');}
+function makePayment(){
+  const btn=document.querySelector('.pay-btn');
+  btn.innerHTML='<span>İşlem yapılıyor...</span>';
+  setTimeout(()=>{
+    btn.innerHTML='<span>✓ Ödeme Tamamlandı</span>';
+    btn.style.background='var(--success)';
+    toast('ok','Ödeme Başarılı!','$1.260 güvenli escrow hesabına aktarıldı. Üretim başlıyor.');
+    setTimeout(()=>toast('info','Escrow Aktif','Ürünü teslim alıp onaylayana kadar ödeme güvende.'),1200);
+  },2000);
+}
+
+// TOAST
+function toast(type,title,msg){
+  const s=document.getElementById('ts');
+  const icons={ok:'✦',info:'◈',warn:'◎'};
+  const t=document.createElement('div');
+  t.className='tt tt-'+type;
+  t.innerHTML=`<div style="font-size:0.8rem;flex-shrink:0;">${icons[type]||'◈'}</div><div class="tt-b"><div class="tt-t">${title}</div><div class="tt-m">${msg}</div></div><button class="tt-c" onclick="this.parentElement.remove()">✕</button>`;
+  s.appendChild(t);setTimeout(()=>t.remove&&t.remove(),5000);
+}
+
+// ── SUPABASE ENTEGRASYONU ────────────────────────────────────────────────────
+
+let currentUser   = null;
+let activeConvId  = null;
+let realtimeChannel = null;
+
+// Oturum kontrolü
+async function initSession() {
+  let session = null; try { const _r = await sb.auth.getSession(); session = _r.data?.session || null; } catch(e) { console.warn("[OMNIDEA] getSession hatası:", e.message); }
+  if (!session && SUPABASE_READY) { window.location.href = 'https://omnideaai.github.io/omnidea/2-omnidea-auth-entegre.html'; return; } else if (!session) { console.warn('[OMNIDEA] Demo mod: oturum yok ama sayfa açıldı'); }
+  currentUser = session.user;
+  await loadConversations();
+}
+
+// Konuşma listesini Supabase'den çek
+async function loadConversations() {
+  const { data: convs } = await sb
+    .from('conversations')
+    .select('*, messages(content, created_at, sender_id)')
+    .contains('participant_ids', [currentUser.id])
+    .order('last_message_at', { ascending: false })
+    .limit(20);
+
+  if (!convs || !convs.length) { renderConvs(); return; }
+
+  // Katılımcıların profillerini çek
+  const allIds = [...new Set(convs.flatMap(c => c.participant_ids).filter(id => id !== currentUser.id))];
+  const { data: profiles } = await sb
+    .from('profiles')
+    .select('id, full_name, avatar_url')
+    .in('id', allIds);
+
+  const profileMap = {};
+  (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+  CONVS.length = 0;
+  convs.forEach(c => {
+    const otherId  = c.participant_ids.find(id => id !== currentUser.id);
+    const other    = profileMap[otherId] || {};
+    const initials = (other.full_name || 'U').split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const colors   = ['#C9A84C','#4A9ECA','#9B59B6','#4CAF7D','#E05555'];
+    const clr      = colors[allIds.indexOf(otherId) % colors.length];
+    CONVS.push({
+      id:      c.id,
+      av:      initials,
+      clr,
+      name:    other.full_name || 'Kullanıcı',
+      project: c.subject || '—',
+      preview: c.last_message || '...',
+      time:    c.last_message_at
+               ? new Date(c.last_message_at).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' })
+               : '',
+      unread:  false,
+      active:  false,
+    });
+  });
+
+  renderConvs();
+
+  // İlk konuşmayı otomatik aç
+  if (CONVS.length > 0) selectConversation(0);
+}
+
+// Konuşma seçildiğinde mesajları yükle
+async function selectConversation(index) {
+  activeConvId = CONVS[index]?.id;
+  if (!activeConvId) return;
+
+  // Önceki realtime kanalı kapat
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+
+  document.querySelectorAll('.conv-item').forEach((x,i) => {
+    x.classList.toggle('active-conv', i === index);
+    if (i === index) x.classList.remove('unread-conv');
+  });
+
+  // Mesajları çek
+  const { data: msgs } = await sb
+    .from('messages')
+    .select('*, profiles:sender_id(full_name)')
+    .eq('conversation_id', activeConvId)
+    .order('created_at', { ascending: true });
+
+  const scroll = document.getElementById('chatScroll');
+  scroll.innerHTML = '';
+
+  (msgs || []).forEach(m => appendMessage(m));
+  scroll.scrollTop = scroll.scrollHeight;
+
+  // Okunmamışları okundu yap
+  await sb.from('messages')
+    .update({ read_at: new Date().toISOString() })
+    .eq('conversation_id', activeConvId)
+    .neq('sender_id', currentUser.id)
+    .is('read_at', null);
+
+  // Realtime: yeni mesajları dinle
+  realtimeChannel = sb
+    .channel(`messages:${activeConvId}`)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'messages',
+      filter: `conversation_id=eq.${activeConvId}`
+    }, payload => {
+      appendMessage(payload.new);
+      scroll.scrollTop = scroll.scrollHeight;
+    })
+    .subscribe();
+}
+
+// Chat ekranına mesaj satırı ekle
+function appendMessage(m) {
+  const isMe   = m.sender_id === currentUser?.id;
+  const scroll = document.getElementById('chatScroll');
+  const time   = new Date(m.created_at).toLocaleTimeString('tr-TR', { hour:'2-digit', minute:'2-digit' });
+  const initials = isMe ? 'BN' : (m.profiles?.full_name || 'K').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const row = document.createElement('div');
+  row.className = 'msg-row' + (isMe ? ' me' : '');
+  row.innerHTML = `<div class="msg-av-small" style="background:${isMe?'rgba(201,168,76,0.15)':'rgba(74,158,202,0.15)'};color:${isMe?'var(--gold)':'var(--info)'};">${initials}</div><div><div class="bubble ${isMe?'bubble-me':'bubble-them'}">${m.content}<span class="bubble-time">${time}</span></div></div>`;
+  scroll.appendChild(row);
+}
+
+// Mesaj Gönder — Supabase'e yaz
+async function sendMsg() {
+  if (!activeConvId || !currentUser) return;
+  const inp = document.getElementById('chatInput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  const { error } = await sb.from('messages').insert({
+    conversation_id: activeConvId,
+    sender_id:       currentUser.id,
+    content:         txt,
+    type:            'text',
+  });
+
+  if (error) toast('warn', 'Gönderilemedi', error.message);
+}
+
+// renderConvs'u conv seçimine bağla
+const _origRenderConvs = renderConvs;
+function renderConvs() {
+  const s = document.getElementById('convScroll'); s.innerHTML = '';
+  CONVS.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'conv-item' + (c.active?' active-conv':'') + (c.unread?' unread-conv':'');
+    d.innerHTML = `<div class="conv-av" style="background:${c.clr}22;color:${c.clr};border:0.5px solid ${c.clr}44;">${c.av}</div><div class="conv-info"><div class="conv-name">${c.name}</div><div class="conv-project">${c.project}</div><div class="conv-preview">${c.preview}</div></div><div class="conv-time">${c.time}</div>`;
+    d.onclick = () => selectConversation(i);
+    s.appendChild(d);
+  });
+}
+
+// INIT
+renderTracks();
+document.getElementById('chatScroll').scrollTop = 9999;
+initSession();
+setTimeout(() => toast('info', 'Bağlanıyor...', 'Mesajlar yükleniyor.'), 300);
+</script>
+
+<script>
+// OMNIDEA — Çok Dilli Dil Paketi (80 Dil)
+// Kullanım: OmnideaI18n.init(); OmnideaI18n.set('en');
+
+const OmnideaI18n = (function() {
+
+const LANGUAGES = {
+  tr: { name: 'Türkçe', flag: '🇹🇷', dir: 'ltr' },
+  en: { name: 'English', flag: '🇬🇧', dir: 'ltr' },
+  ar: { name: 'العربية', flag: '🇸🇦', dir: 'rtl' },
+  zh: { name: '中文', flag: '🇨🇳', dir: 'ltr' },
+  ru: { name: 'Русский', flag: '🇷🇺', dir: 'ltr' },
+  de: { name: 'Deutsch', flag: '🇩🇪', dir: 'ltr' },
+  fr: { name: 'Français', flag: '🇫🇷', dir: 'ltr' },
+  es: { name: 'Español', flag: '🇪🇸', dir: 'ltr' },
+  it: { name: 'Italiano', flag: '🇮🇹', dir: 'ltr' },
+  pt: { name: 'Português', flag: '🇧🇷', dir: 'ltr' },
+  ja: { name: '日本語', flag: '🇯🇵', dir: 'ltr' },
+  ko: { name: '한국어', flag: '🇰🇷', dir: 'ltr' },
+  hi: { name: 'हिन्दी', flag: '🇮🇳', dir: 'ltr' },
+  bn: { name: 'বাংলা', flag: '🇧🇩', dir: 'ltr' },
+  ur: { name: 'اردو', flag: '🇵🇰', dir: 'rtl' },
+  fa: { name: 'فارسی', flag: '🇮🇷', dir: 'rtl' },
+  he: { name: 'עברית', flag: '🇮🇱', dir: 'rtl' },
+  pl: { name: 'Polski', flag: '🇵🇱', dir: 'ltr' },
+  nl: { name: 'Nederlands', flag: '🇳🇱', dir: 'ltr' },
+  sv: { name: 'Svenska', flag: '🇸🇪', dir: 'ltr' },
+  no: { name: 'Norsk', flag: '🇳🇴', dir: 'ltr' },
+  da: { name: 'Dansk', flag: '🇩🇰', dir: 'ltr' },
+  fi: { name: 'Suomi', flag: '🇫🇮', dir: 'ltr' },
+  cs: { name: 'Čeština', flag: '🇨🇿', dir: 'ltr' },
+  sk: { name: 'Slovenčina', flag: '🇸🇰', dir: 'ltr' },
+  hu: { name: 'Magyar', flag: '🇭🇺', dir: 'ltr' },
+  ro: { name: 'Română', flag: '🇷🇴', dir: 'ltr' },
+  bg: { name: 'Български', flag: '🇧🇬', dir: 'ltr' },
+  hr: { name: 'Hrvatski', flag: '🇭🇷', dir: 'ltr' },
+  sr: { name: 'Srpski', flag: '🇷🇸', dir: 'ltr' },
+  uk: { name: 'Українська', flag: '🇺🇦', dir: 'ltr' },
+  el: { name: 'Ελληνικά', flag: '🇬🇷', dir: 'ltr' },
+  vi: { name: 'Tiếng Việt', flag: '🇻🇳', dir: 'ltr' },
+  th: { name: 'ภาษาไทย', flag: '🇹🇭', dir: 'ltr' },
+  id: { name: 'Bahasa Indonesia', flag: '🇮🇩', dir: 'ltr' },
+  ms: { name: 'Bahasa Melayu', flag: '🇲🇾', dir: 'ltr' },
+  tl: { name: 'Filipino', flag: '🇵🇭', dir: 'ltr' },
+  sw: { name: 'Kiswahili', flag: '🇰🇪', dir: 'ltr' },
+  am: { name: 'አማርኛ', flag: '🇪🇹', dir: 'ltr' },
+  ha: { name: 'Hausa', flag: '🇳🇬', dir: 'ltr' },
+  yo: { name: 'Yorùbá', flag: '🇳🇬', dir: 'ltr' },
+  ig: { name: 'Igbo', flag: '🇳🇬', dir: 'ltr' },
+  zu: { name: 'isiZulu', flag: '🇿🇦', dir: 'ltr' },
+  af: { name: 'Afrikaans', flag: '🇿🇦', dir: 'ltr' },
+  sq: { name: 'Shqip', flag: '🇦🇱', dir: 'ltr' },
+  hy: { name: 'Հայերեն', flag: '🇦🇲', dir: 'ltr' },
+  az: { name: 'Azərbaycan', flag: '🇦🇿', dir: 'ltr' },
+  ka: { name: 'ქართული', flag: '🇬🇪', dir: 'ltr' },
+  kk: { name: 'Қазақша', flag: '🇰🇿', dir: 'ltr' },
+  uz: { name: "O'zbek", flag: '🇺🇿', dir: 'ltr' },
+  tk: { name: 'Türkmen', flag: '🇹🇲', dir: 'ltr' },
+  ky: { name: 'Кыргызча', flag: '🇰🇬', dir: 'ltr' },
+  tg: { name: 'Тоҷикӣ', flag: '🇹🇯', dir: 'ltr' },
+  mn: { name: 'Монгол', flag: '🇲🇳', dir: 'ltr' },
+  ne: { name: 'नेपाली', flag: '🇳🇵', dir: 'ltr' },
+  si: { name: 'සිංහල', flag: '🇱🇰', dir: 'ltr' },
+  my: { name: 'မြန်မာ', flag: '🇲🇲', dir: 'ltr' },
+  km: { name: 'ខ្មែរ', flag: '🇰🇭', dir: 'ltr' },
+  lo: { name: 'ລາວ', flag: '🇱🇦', dir: 'ltr' },
+  gl: { name: 'Galego', flag: '🇪🇸', dir: 'ltr' },
+  ca: { name: 'Català', flag: '🏴', dir: 'ltr' },
+  eu: { name: 'Euskara', flag: '🏴', dir: 'ltr' },
+  lt: { name: 'Lietuvių', flag: '🇱🇹', dir: 'ltr' },
+  lv: { name: 'Latviešu', flag: '🇱🇻', dir: 'ltr' },
+  et: { name: 'Eesti', flag: '🇪🇪', dir: 'ltr' },
+  is: { name: 'Íslenska', flag: '🇮🇸', dir: 'ltr' },
+  mt: { name: 'Malti', flag: '🇲🇹', dir: 'ltr' },
+  mk: { name: 'Македонски', flag: '🇲🇰', dir: 'ltr' },
+  bs: { name: 'Bosanski', flag: '🇧🇦', dir: 'ltr' },
+  sl: { name: 'Slovenščina', flag: '🇸🇮', dir: 'ltr' },
+  lb: { name: 'Lëtzebuergesch', flag: '🇱🇺', dir: 'ltr' },
+  cy: { name: 'Cymraeg', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', dir: 'ltr' },
+  ga: { name: 'Gaeilge', flag: '🇮🇪', dir: 'ltr' },
+  mi: { name: 'Māori', flag: '🇳🇿', dir: 'ltr' },
+  ht: { name: 'Kreyòl', flag: '🇭🇹', dir: 'ltr' },
+};
+
+const T = {
+  tr: {
+    login: 'Giriş Yap', register: 'Kayıt Ol',
+    email: 'E-posta', password: 'Şifre',
+    name: 'Ad', surname: 'Soyad',
+    forgot: 'Şifremi Unuttum',
+    or: 'veya',
+    with_google: 'Google ile Devam Et',
+    create_account: 'Hesap Oluştur',
+    welcome: 'Hoş Geldin',
+    design: 'Tasarla', produce: 'Üret', sell: 'Sat',
+    sector: 'Sektör', country: 'Ülke',
+    next: 'Devam →', back: '← Geri',
+    step: 'Adım',
+    account_created: 'Hesabın başarıyla oluşturuldu',
+    go_dashboard: 'Dashboard\'a Git →',
+    terms: 'Kullanım Koşulları',
+    privacy: 'Gizlilik Politikası',
+    agree: 'okudum, kabul ediyorum',
+    designer: 'Tasarımcı', producer: 'Üretici',
+    select_role: 'Rolünü Seç',
+    tagline: 'Tasarımın Sınırı Yok.',
+    sub: 'AI destekli stüdyoda tasarla, küresel üretici ağına sun.',
+    sign_in_continue: 'Giriş yaparak devam et',
+  },
+  en: {
+    login: 'Sign In', register: 'Sign Up',
+    email: 'Email', password: 'Password',
+    name: 'First Name', surname: 'Last Name',
+    forgot: 'Forgot Password',
+    or: 'or',
+    with_google: 'Continue with Google',
+    create_account: 'Create Account',
+    welcome: 'Welcome',
+    design: 'Design', produce: 'Produce', sell: 'Sell',
+    sector: 'Sector', country: 'Country',
+    next: 'Continue →', back: '← Back',
+    step: 'Step',
+    account_created: 'Your account has been created',
+    go_dashboard: 'Go to Dashboard →',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    agree: 'I have read and agree',
+    designer: 'Designer', producer: 'Producer',
+    select_role: 'Select Your Role',
+    tagline: 'Design Without Limits.',
+    sub: 'Design in AI-powered studio, reach global manufacturers.',
+    sign_in_continue: 'Sign in to continue',
+  },
+  ar: {
+    login: 'تسجيل الدخول', register: 'إنشاء حساب',
+    email: 'البريد الإلكتروني', password: 'كلمة المرور',
+    name: 'الاسم الأول', surname: 'اسم العائلة',
+    forgot: 'نسيت كلمة المرور',
+    or: 'أو', with_google: 'المتابعة مع Google',
+    create_account: 'إنشاء حساب', welcome: 'مرحباً',
+    design: 'صمم', produce: 'أنتج', sell: 'بع',
+    sector: 'القطاع', country: 'الدولة',
+    next: 'التالي →', back: '← رجوع', step: 'خطوة',
+    account_created: 'تم إنشاء حسابك', go_dashboard: 'الذهاب إلى لوحة التحكم →',
+    terms: 'شروط الخدمة', privacy: 'سياسة الخصوصية',
+    agree: 'قرأت وأوافق', designer: 'مصمم', producer: 'منتج',
+    select_role: 'اختر دورك', tagline: 'التصميم بلا حدود.',
+    sub: 'صمم في استوديو مدعوم بالذكاء الاصطناعي.', sign_in_continue: 'سجل الدخول للمتابعة',
+  },
+  zh: {
+    login: '登录', register: '注册',
+    email: '电子邮件', password: '密码',
+    name: '名字', surname: '姓氏',
+    forgot: '忘记密码', or: '或者', with_google: '使用Google继续',
+    create_account: '创建账户', welcome: '欢迎',
+    design: '设计', produce: '生产', sell: '销售',
+    sector: '行业', country: '国家',
+    next: '继续 →', back: '← 返回', step: '步骤',
+    account_created: '账户已成功创建', go_dashboard: '前往控制台 →',
+    terms: '服务条款', privacy: '隐私政策',
+    agree: '我已阅读并同意', designer: '设计师', producer: '生产商',
+    select_role: '选择角色', tagline: '设计无边界。',
+    sub: '在AI驱动的工作室进行设计。', sign_in_continue: '登录继续',
+  },
+  ru: {
+    login: 'Войти', register: 'Зарегистрироваться',
+    email: 'Электронная почта', password: 'Пароль',
+    name: 'Имя', surname: 'Фамилия',
+    forgot: 'Забыли пароль', or: 'или', with_google: 'Войти через Google',
+    create_account: 'Создать аккаунт', welcome: 'Добро пожаловать',
+    design: 'Дизайн', produce: 'Производить', sell: 'Продавать',
+    sector: 'Сектор', country: 'Страна',
+    next: 'Продолжить →', back: '← Назад', step: 'Шаг',
+    account_created: 'Аккаунт успешно создан', go_dashboard: 'На панель →',
+    terms: 'Условия использования', privacy: 'Политика конфиденциальности',
+    agree: 'Я прочитал и согласен', designer: 'Дизайнер', producer: 'Производитель',
+    select_role: 'Выберите роль', tagline: 'Дизайн без границ.',
+    sub: 'Создавайте в студии на базе ИИ.', sign_in_continue: 'Войдите, чтобы продолжить',
+  },
+  de: {
+    login: 'Anmelden', register: 'Registrieren',
+    email: 'E-Mail', password: 'Passwort',
+    name: 'Vorname', surname: 'Nachname',
+    forgot: 'Passwort vergessen', or: 'oder', with_google: 'Mit Google fortfahren',
+    create_account: 'Konto erstellen', welcome: 'Willkommen',
+    design: 'Entwerfen', produce: 'Produzieren', sell: 'Verkaufen',
+    sector: 'Sektor', country: 'Land',
+    next: 'Weiter →', back: '← Zurück', step: 'Schritt',
+    account_created: 'Konto erfolgreich erstellt', go_dashboard: 'Zum Dashboard →',
+    terms: 'Nutzungsbedingungen', privacy: 'Datenschutz',
+    agree: 'Ich habe gelesen und stimme zu', designer: 'Designer', producer: 'Produzent',
+    select_role: 'Wählen Sie Ihre Rolle', tagline: 'Design ohne Grenzen.',
+    sub: 'Gestalten Sie im KI-Studio.', sign_in_continue: 'Anmelden um fortzufahren',
+  },
+  fr: {
+    login: 'Se connecter', register: "S'inscrire",
+    email: 'E-mail', password: 'Mot de passe',
+    name: 'Prénom', surname: 'Nom de famille',
+    forgot: 'Mot de passe oublié', or: 'ou', with_google: 'Continuer avec Google',
+    create_account: 'Créer un compte', welcome: 'Bienvenue',
+    design: 'Concevoir', produce: 'Produire', sell: 'Vendre',
+    sector: 'Secteur', country: 'Pays',
+    next: 'Continuer →', back: '← Retour', step: 'Étape',
+    account_created: 'Compte créé avec succès', go_dashboard: 'Aller au tableau de bord →',
+    terms: "Conditions d'utilisation", privacy: 'Politique de confidentialité',
+    agree: "J'ai lu et j'accepte", designer: 'Designer', producer: 'Producteur',
+    select_role: 'Choisissez votre rôle', tagline: 'Design sans limites.',
+    sub: 'Créez dans notre studio IA.', sign_in_continue: 'Connectez-vous pour continuer',
+  },
+  es: {
+    login: 'Iniciar sesión', register: 'Registrarse',
+    email: 'Correo electrónico', password: 'Contraseña',
+    name: 'Nombre', surname: 'Apellido',
+    forgot: 'Olvidé mi contraseña', or: 'o', with_google: 'Continuar con Google',
+    create_account: 'Crear cuenta', welcome: 'Bienvenido',
+    design: 'Diseñar', produce: 'Producir', sell: 'Vender',
+    sector: 'Sector', country: 'País',
+    next: 'Continuar →', back: '← Volver', step: 'Paso',
+    account_created: 'Cuenta creada exitosamente', go_dashboard: 'Ir al panel →',
+    terms: 'Términos de servicio', privacy: 'Política de privacidad',
+    agree: 'He leído y acepto', designer: 'Diseñador', producer: 'Productor',
+    select_role: 'Elige tu rol', tagline: 'Diseño sin límites.',
+    sub: 'Diseña en el estudio con IA.', sign_in_continue: 'Inicia sesión para continuar',
+  },
+  uz: {
+    login: 'Kirish', register: "Ro'yxatdan o'tish",
+    email: 'Elektron pochta', password: 'Parol',
+    name: 'Ism', surname: 'Familiya',
+    forgot: 'Parolni unutdim', or: 'yoki', with_google: "Google bilan davom eting",
+    create_account: 'Hisob yaratish', welcome: 'Xush kelibsiz',
+    design: 'Loyihalash', produce: 'Ishlab chiqarish', sell: 'Sotish',
+    sector: 'Sektor', country: 'Mamlakat',
+    next: 'Davom →', back: '← Orqaga', step: 'Qadam',
+    account_created: 'Hisobingiz muvaffaqiyatli yaratildi', go_dashboard: 'Boshqaruv paneliga →',
+    terms: 'Foydalanish shartlari', privacy: 'Maxfiylik siyosati',
+    agree: "O'qidim va roziman", designer: 'Dizayner', producer: 'Ishlab chiqaruvchi',
+    select_role: 'Rolingizni tanlang', tagline: 'Cheksiz dizayn.',
+    sub: "AI studiyasida loyihalang, global ishlab chiqaruvchilarga yetkazing.", sign_in_continue: 'Davom etish uchun kiring',
+  },
+};
+
+// Geri kalan 71 dil için İngilizce fallback — ileride genişletilebilir
+const ALL_LANGS = Object.keys(LANGUAGES);
+ALL_LANGS.forEach(function(code) {
+  if (!T[code]) T[code] = Object.assign({}, T['en']);
+});
+
+let currentLang = localStorage.getItem('omnidea_lang') || 'tr';
+
+function t(key) {
+  return (T[currentLang] && T[currentLang][key]) || (T['en'] && T['en'][key]) || key;
+}
+
+function set(code) {
+  if (!LANGUAGES[code]) return;
+  currentLang = code;
+  localStorage.setItem('omnidea_lang', code);
+  document.documentElement.lang = code;
+  document.documentElement.dir = LANGUAGES[code].dir;
+  applyTranslations();
+  closePicker();
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    var attr = el.getAttribute('data-i18n-attr');
+    if (attr) { el.setAttribute(attr, t(key)); }
+    else { el.textContent = t(key); }
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(function(el) {
+    el.placeholder = t(el.getAttribute('data-i18n-ph'));
+  });
+}
+
+function init() {
+  var saved = localStorage.getItem('omnidea_lang');
+  if (!saved) {
+    var browser = navigator.language.split('-')[0];
+    if (LANGUAGES[browser]) currentLang = browser;
+  }
+  injectPicker();
+  applyTranslations();
+}
+
+function injectPicker() {
+  if (document.getElementById('omnidea-lang-picker')) return;
+
+  var style = document.createElement('style');
+  style.textContent = `
+    #lang-btn { position:fixed; bottom:1.5rem; left:1.5rem; z-index:8000;
+      width:40px; height:40px; border-radius:50%;
+      background:#0F0F0F; border:0.5px solid rgba(201,168,76,0.3);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:all 0.2s; font-size:1rem; }
+    #lang-btn:hover { border-color:rgba(201,168,76,0.6); background:#161616; }
+    #lang-picker { position:fixed; bottom:5rem; left:1.5rem; z-index:8001;
+      width:280px; max-height:400px; overflow-y:auto;
+      background:#0F0F0F; border:0.5px solid rgba(201,168,76,0.2);
+      border-radius:6px; padding:0.5rem;
+      display:none; flex-direction:column; gap:1px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.6); }
+    #lang-picker.open { display:flex; }
+    #lang-search { width:100%; padding:0.5rem 0.75rem; background:#161616;
+      border:0.5px solid rgba(201,168,76,0.15); border-radius:3px;
+      color:#F0EDE6; font-size:0.75rem; font-family:inherit;
+      margin-bottom:0.4rem; }
+    .lang-item { display:flex; align-items:center; gap:0.6rem;
+      padding:0.5rem 0.75rem; border-radius:3px; cursor:pointer;
+      transition:background 0.15s; font-size:0.78rem; color:#A09A8E; }
+    .lang-item:hover { background:rgba(201,168,76,0.08); color:#F0EDE6; }
+    .lang-item.active { color:#C9A84C; background:rgba(201,168,76,0.08); }
+    .lang-item .lf { font-size:1rem; flex-shrink:0; }
+    .lang-item .ln { flex:1; }
+    .lang-item .lc { font-size:0.62rem; color:#5A554E; text-transform:uppercase; }
+  `;
+  document.head.appendChild(style);
+
+  var btn = document.createElement('button');
+  btn.id = 'lang-btn';
+  btn.title = 'Change Language';
+  btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(201,168,76,0.8)" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>';
+  btn.onclick = togglePicker;
+  document.body.appendChild(btn);
+
+  var picker = document.createElement('div');
+  picker.id = 'lang-picker';
+  picker.innerHTML = '<input id="lang-search" type="text" placeholder="Dil ara / Search language..." oninput="OmnideaI18n._filter(this.value)">';
+
+  var listDiv = document.createElement('div');
+  listDiv.id = 'lang-list';
+  ALL_LANGS.forEach(function(code) {
+    var lang = LANGUAGES[code];
+    var item = document.createElement('div');
+    item.className = 'lang-item' + (code === currentLang ? ' active' : '');
+    item.dataset.code = code;
+    item.innerHTML = '<span class="lf">' + lang.flag + '</span><span class="ln">' + lang.name + '</span><span class="lc">' + code.toUpperCase() + '</span>';
+    item.onclick = function() { set(code); };
+    listDiv.appendChild(item);
+  });
+  picker.appendChild(listDiv);
+  document.body.appendChild(picker);
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('#lang-btn') && !e.target.closest('#lang-picker')) {
+      closePicker();
+    }
+  });
+}
+
+function togglePicker() {
+  var p = document.getElementById('lang-picker');
+  if (p) p.classList.toggle('open');
+}
+function closePicker() {
+  var p = document.getElementById('lang-picker');
+  if (p) p.classList.remove('open');
+}
+function _filter(q) {
+  var items = document.querySelectorAll('#lang-list .lang-item');
+  items.forEach(function(item) {
+    var text = item.textContent.toLowerCase();
+    item.style.display = text.includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+return { init, set, t, LANGUAGES, _filter };
+})();
+
+// Otomatik başlat
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function() { OmnideaI18n.init(); });
+} else {
+  OmnideaI18n.init();
+}
+
+</script>
+</body>
+</html>
